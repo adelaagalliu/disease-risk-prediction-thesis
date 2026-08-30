@@ -1,0 +1,1269 @@
+{
+  "contract_version": "1.2.0",
+  "classification_rule": "elevated when probability >= threshold; otherwise not_elevated",
+  "common_rules": {
+    "unknown_fields": "reject",
+    "null_behavior": "reject unless the input explicitly allows null",
+    "boolean_encoding": {
+      "false": 0,
+      "true": 1
+    },
+    "sex_encoding": {
+      "female": 0,
+      "male": 1
+    },
+    "age_range_derivation": {
+      "source_input": "age",
+      "ranges": [
+        {
+          "minimum": 18,
+          "maximum_exclusive": 25,
+          "value": 1
+        },
+        {
+          "minimum": 25,
+          "maximum_exclusive": 30,
+          "value": 2
+        },
+        {
+          "minimum": 30,
+          "maximum_exclusive": 35,
+          "value": 3
+        },
+        {
+          "minimum": 35,
+          "maximum_exclusive": 40,
+          "value": 4
+        },
+        {
+          "minimum": 40,
+          "maximum_exclusive": 45,
+          "value": 5
+        },
+        {
+          "minimum": 45,
+          "maximum_exclusive": 50,
+          "value": 6
+        },
+        {
+          "minimum": 50,
+          "maximum_exclusive": 55,
+          "value": 7
+        },
+        {
+          "minimum": 55,
+          "maximum_exclusive": 60,
+          "value": 8
+        },
+        {
+          "minimum": 60,
+          "maximum_exclusive": 65,
+          "value": 9
+        },
+        {
+          "minimum": 65,
+          "maximum_exclusive": 70,
+          "value": 10
+        },
+        {
+          "minimum": 70,
+          "maximum_exclusive": 75,
+          "value": 11
+        },
+        {
+          "minimum": 75,
+          "maximum_exclusive": 80,
+          "value": 12
+        },
+        {
+          "minimum": 80,
+          "maximum_inclusive": 120,
+          "value": 13
+        }
+      ]
+    },
+    "bmi_derivation": {
+      "formula": "weight_kg / ((height_cm / 100) ** 2)",
+      "round_to_decimal_places": 2,
+      "minimum": 10,
+      "maximum": 80,
+      "out_of_range_behavior": "reject"
+    },
+    "training_and_preprocessing": {
+      "random_state": 44,
+      "outer_split": {
+        "method": "StratifiedGroupKFold",
+        "folds": 10,
+        "allocation": {
+          "train_folds": 7,
+          "validation_folds": 1,
+          "test_folds": 2
+        },
+        "approximate_proportions": {
+          "train": 0.7,
+          "validation": 0.1,
+          "test": 0.2
+        },
+        "grouping": "Stable hash of the complete raw predictor profile before imputation and feature engineering",
+        "group_column": "_group_id",
+        "group_column_is_predictor": false,
+        "reason": "Prevents identical predictor profiles from crossing train, validation, and test boundaries"
+      },
+      "missing_values": {
+        "fit_scope": "training split only",
+        "subgroup_minimum_n": 30,
+        "unseen_or_sparse_group_fallback": "overall training statistic",
+        "training_smoker_mask": {
+          "datasets": [
+            "diabetes",
+            "heart_disease",
+            "hypertension"
+          ],
+          "fraction_of_known_training_values": 0.05,
+          "validation_or_test_masked": false,
+          "fill": "training observed smoker rate",
+          "indicator": "smoker_was_missing"
+        },
+        "hypertension": {
+          "bmi": "training median",
+          "heart_rate": "training median",
+          "cholesterol": "training age_range conditional median; overall training median fallback",
+          "bp_meds": "training binary mode within systolic BP bands [0,120), [120,140), [140,160), [160,180), [180,1000); overall training mode fallback",
+          "bp_meds_indicator": "bp_meds_was_missing",
+          "cigs_per_day": "training median among smokers; 0 for non-smokers",
+          "glucose": "training diabetes-subgroup median; overall training median fallback",
+          "post_imputation_recalculation": "high_chol = 1 when cholesterol > 200"
+        },
+        "stroke": {
+          "sex_binary": "drop the one unencodable gender='Other' row before splitting",
+          "bmi": "training age_range conditional median; overall training median fallback",
+          "bmi_indicator": "bmi_was_missing",
+          "smoking_status": "retain current, former, and unknown indicators; never smoked is reference"
+        },
+        "deployment_distinction": "The historical training data are imputed as documented, but API requests reject missing required user inputs. Complete prediction requests set applicable missingness indicators to 0."
+      },
+      "feature_engineering_order": "after splitting and after train-fitted imputation",
+      "model_search": {
+        "candidates": [
+          "logreg",
+          "random_forest",
+          "xgboost",
+          "lightgbm",
+          "catboost"
+        ],
+        "method": "RandomizedSearchCV",
+        "iterations_per_model": 10,
+        "cross_validation": "3-fold StratifiedGroupKFold on training data",
+        "selection_metric": "average_precision",
+        "primary_model_selection_source": "grouped training cross-validation only",
+        "class_imbalance": "model-specific class weighting; no synthetic oversampling",
+        "threshold_selection": "maximize F1 on validation over thresholds 0.01 to 0.99 in 0.01 steps",
+        "test_usage": "held out for final evaluation; not used for model or threshold selection"
+      },
+      "scaling": {
+        "logreg": "StandardScaler for continuous and ordinal columns, fit inside the training pipeline",
+        "tree_models": "passthrough; no scaling"
+      },
+      "evaluation": {
+        "threshold_dependent": [
+          "accuracy",
+          "precision",
+          "recall",
+          "f1",
+          "confusion_matrix"
+        ],
+        "threshold_independent": [
+          "roc_auc",
+          "average_precision"
+        ],
+        "uncertainty": "95% percentile confidence intervals from 1000 group-bootstrap resamples",
+        "calibration": "Brier score and 10-bin quantile reliability curve"
+      },
+      "explainability": {
+        "method": "SHAP",
+        "background_rows_from_training": 100,
+        "explained_rows_from_test": 200,
+        "local_examples_per_model": 3,
+        "interpretation": "within-model feature contribution, not causal effect"
+      }
+    }
+  },
+  "diseases": {
+    "diabetes": {
+      "route": "/predict/diabetes",
+      "method": "POST",
+      "model": {
+        "name": "catboost",
+        "artifact": "models/diabetes_catboost.joblib",
+        "threshold": 0.63,
+        "threshold_source": "validation_f1",
+        "selection_method": "highest average_precision in grouped training cross-validation",
+        "candidate_models": [
+          "logreg",
+          "random_forest",
+          "xgboost",
+          "lightgbm",
+          "catboost"
+        ]
+      },
+      "inputs": {
+        "heart_disease": {
+          "required": true,
+          "type": "boolean"
+        },
+        "stroke": {
+          "required": true,
+          "type": "boolean"
+        },
+        "sex": {
+          "required": true,
+          "type": "category",
+          "allowed_values": [
+            "female",
+            "male"
+          ]
+        },
+        "age": {
+          "required": true,
+          "type": "integer",
+          "minimum": 18,
+          "maximum": 120,
+          "unit": "years"
+        },
+        "height_cm": {
+          "required": true,
+          "type": "number",
+          "minimum": 100,
+          "maximum": 250,
+          "unit": "cm",
+          "used_to_derive": "bmi"
+        },
+        "weight_kg": {
+          "required": true,
+          "type": "number",
+          "minimum": 30,
+          "maximum": 300,
+          "unit": "kg",
+          "used_to_derive": "bmi"
+        },
+        "smoking_status": {
+          "required": true,
+          "type": "category",
+          "allowed_values": [
+            "never",
+            "former",
+            "current",
+            "unknown"
+          ],
+          "encoding": "current maps to smoker=1; never and former map to smoker=0; unknown uses the training-only observed smoker rate and sets smoker_was_missing=1"
+        },
+        "heavy_alcohol": {
+          "required": true,
+          "type": "boolean"
+        },
+        "physical_activity": {
+          "required": true,
+          "type": "boolean"
+        },
+        "education": {
+          "required": true,
+          "type": "category",
+          "allowed_values": [
+            "never_attended_or_kindergarten",
+            "elementary",
+            "some_high_school",
+            "high_school_graduate",
+            "some_college_or_technical_school",
+            "college_graduate"
+          ],
+          "encoding": {
+            "never_attended_or_kindergarten": 1,
+            "elementary": 2,
+            "some_high_school": 3,
+            "high_school_graduate": 4,
+            "some_college_or_technical_school": 5,
+            "college_graduate": 6
+          }
+        },
+        "income": {
+          "required": true,
+          "type": "category",
+          "allowed_values": [
+            "less_than_10000",
+            "10000_to_14999",
+            "15000_to_19999",
+            "20000_to_24999",
+            "25000_to_34999",
+            "35000_to_49999",
+            "50000_to_74999",
+            "75000_or_more"
+          ],
+          "encoding": {
+            "less_than_10000": 1,
+            "10000_to_14999": 2,
+            "15000_to_19999": 3,
+            "20000_to_24999": 4,
+            "25000_to_34999": 5,
+            "35000_to_49999": 6,
+            "50000_to_74999": 7,
+            "75000_or_more": 8
+          }
+        },
+        "high_bp": {
+          "required": true,
+          "type": "boolean",
+          "description": "Previous high-blood-pressure diagnosis"
+        },
+        "high_chol": {
+          "required": true,
+          "type": "boolean",
+          "description": "Previous high-cholesterol diagnosis"
+        },
+        "chol_check": {
+          "required": true,
+          "type": "boolean"
+        },
+        "fruits": {
+          "required": true,
+          "type": "boolean"
+        },
+        "veggies": {
+          "required": true,
+          "type": "boolean"
+        },
+        "general_health": {
+          "required": true,
+          "type": "category",
+          "allowed_values": [
+            "excellent",
+            "very_good",
+            "good",
+            "fair",
+            "poor"
+          ],
+          "encoding": {
+            "excellent": 1,
+            "very_good": 2,
+            "good": 3,
+            "fair": 4,
+            "poor": 5
+          }
+        },
+        "mental_health_days": {
+          "required": true,
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 30,
+          "unit": "days"
+        },
+        "physical_health_days": {
+          "required": true,
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 30,
+          "unit": "days"
+        },
+        "difficulty_walking": {
+          "required": true,
+          "type": "boolean"
+        }
+      },
+      "derived_features": [
+        "sex_binary",
+        "age_range",
+        "bmi",
+        "bp_chol_both",
+        "bmi_obese",
+        "poor_health_days",
+        "age_bmi",
+        "general_health_diffwalk",
+        "age_genhealth",
+        "metabolic_risk_score",
+        "lifestyle_score"
+      ],
+      "renamed_features": {
+        "mental_health_days": "mental_health",
+        "physical_health_days": "physical_health",
+        "difficulty_walking": "diff_walk"
+      },
+      "missing_input_behavior": "reject; training-source imputation is documented in common_rules.training_and_preprocessing.missing_values and is not a license to omit API inputs",
+      "response_example": {
+        "contract_version": "1.2.0",
+        "disease": "diabetes",
+        "model": "catboost",
+        "model_version": "1",
+        "probability": 0.34,
+        "classification": "not_elevated",
+        "threshold": 0.63,
+        "top_factors": [],
+        "recommendations": [],
+        "explanation_units": "probability",
+        "explanation_note": "SHAP values describe model influence relative to a baseline, not causal effects.",
+        "warnings": [],
+        "disclaimer": "Research estimate, not a medical diagnosis."
+      },
+      "model_features": [
+        "heart_disease",
+        "stroke",
+        "sex_binary",
+        "age_range",
+        "bmi",
+        "smoker",
+        "heavy_alcohol",
+        "physical_activity",
+        "education",
+        "income",
+        "high_bp",
+        "high_chol",
+        "chol_check",
+        "fruits",
+        "veggies",
+        "general_health",
+        "mental_health",
+        "physical_health",
+        "diff_walk",
+        "smoker_was_missing",
+        "bp_chol_both",
+        "bmi_obese",
+        "poor_health_days",
+        "age_bmi",
+        "general_health_diffwalk",
+        "age_genhealth",
+        "metabolic_risk_score",
+        "lifestyle_score"
+      ],
+      "excluded_training_columns": {
+        "always": [
+          "diabetes",
+          "_group_id",
+          "sex"
+        ],
+        "dataset_specific": [
+          "diabetes_severity"
+        ]
+      }
+    },
+    "heart_disease": {
+      "route": "/predict/heart_disease",
+      "method": "POST",
+      "model": {
+        "name": "lightgbm",
+        "artifact": "models/heart_disease_lightgbm.joblib",
+        "threshold": 0.73,
+        "threshold_source": "validation_f1",
+        "selection_method": "highest average_precision in grouped training cross-validation",
+        "candidate_models": [
+          "logreg",
+          "random_forest",
+          "xgboost",
+          "lightgbm",
+          "catboost"
+        ]
+      },
+      "inputs": {
+        "diabetes": {
+          "required": true,
+          "type": "boolean"
+        },
+        "stroke": {
+          "required": true,
+          "type": "boolean"
+        },
+        "sex": {
+          "required": true,
+          "type": "category",
+          "allowed_values": [
+            "female",
+            "male"
+          ]
+        },
+        "age": {
+          "required": true,
+          "type": "integer",
+          "minimum": 18,
+          "maximum": 120,
+          "unit": "years"
+        },
+        "height_cm": {
+          "required": true,
+          "type": "number",
+          "minimum": 100,
+          "maximum": 250,
+          "unit": "cm",
+          "used_to_derive": "bmi"
+        },
+        "weight_kg": {
+          "required": true,
+          "type": "number",
+          "minimum": 30,
+          "maximum": 300,
+          "unit": "kg",
+          "used_to_derive": "bmi"
+        },
+        "smoking_status": {
+          "required": true,
+          "type": "category",
+          "allowed_values": [
+            "never",
+            "former",
+            "current",
+            "unknown"
+          ],
+          "encoding": "current maps to smoker=1; never and former map to smoker=0; unknown uses the training-only observed smoker rate and sets smoker_was_missing=1"
+        },
+        "heavy_alcohol": {
+          "required": true,
+          "type": "boolean"
+        },
+        "physical_activity": {
+          "required": true,
+          "type": "boolean"
+        },
+        "education": {
+          "required": true,
+          "type": "category",
+          "allowed_values": [
+            "never_attended_or_kindergarten",
+            "elementary",
+            "some_high_school",
+            "high_school_graduate",
+            "some_college_or_technical_school",
+            "college_graduate"
+          ],
+          "encoding": {
+            "never_attended_or_kindergarten": 1,
+            "elementary": 2,
+            "some_high_school": 3,
+            "high_school_graduate": 4,
+            "some_college_or_technical_school": 5,
+            "college_graduate": 6
+          }
+        },
+        "income": {
+          "required": true,
+          "type": "category",
+          "allowed_values": [
+            "less_than_10000",
+            "10000_to_14999",
+            "15000_to_19999",
+            "20000_to_24999",
+            "25000_to_34999",
+            "35000_to_49999",
+            "50000_to_74999",
+            "75000_or_more"
+          ],
+          "encoding": {
+            "less_than_10000": 1,
+            "10000_to_14999": 2,
+            "15000_to_19999": 3,
+            "20000_to_24999": 4,
+            "25000_to_34999": 5,
+            "35000_to_49999": 6,
+            "50000_to_74999": 7,
+            "75000_or_more": 8
+          }
+        },
+        "high_bp": {
+          "required": true,
+          "type": "boolean",
+          "description": "Previous high-blood-pressure diagnosis"
+        },
+        "high_chol": {
+          "required": true,
+          "type": "boolean",
+          "description": "Previous high-cholesterol diagnosis"
+        },
+        "chol_check": {
+          "required": true,
+          "type": "boolean"
+        },
+        "fruits": {
+          "required": true,
+          "type": "boolean"
+        },
+        "veggies": {
+          "required": true,
+          "type": "boolean"
+        },
+        "general_health": {
+          "required": true,
+          "type": "category",
+          "allowed_values": [
+            "excellent",
+            "very_good",
+            "good",
+            "fair",
+            "poor"
+          ],
+          "encoding": {
+            "excellent": 1,
+            "very_good": 2,
+            "good": 3,
+            "fair": 4,
+            "poor": 5
+          }
+        },
+        "mental_health_days": {
+          "required": true,
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 30,
+          "unit": "days"
+        },
+        "physical_health_days": {
+          "required": true,
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 30,
+          "unit": "days"
+        },
+        "difficulty_walking": {
+          "required": true,
+          "type": "boolean"
+        }
+      },
+      "derived_features": [
+        "sex_binary",
+        "age_range",
+        "bmi",
+        "bp_chol_both",
+        "bmi_obese",
+        "poor_health_days",
+        "age_bmi",
+        "general_health_diffwalk",
+        "age_genhealth",
+        "metabolic_risk_score",
+        "lifestyle_score"
+      ],
+      "renamed_features": {
+        "mental_health_days": "mental_health",
+        "physical_health_days": "physical_health",
+        "difficulty_walking": "diff_walk"
+      },
+      "missing_input_behavior": "reject; training-source imputation is documented in common_rules.training_and_preprocessing.missing_values and is not a license to omit API inputs",
+      "response_example": {
+        "contract_version": "1.2.0",
+        "disease": "heart_disease",
+        "model": "lightgbm",
+        "model_version": "1",
+        "probability": 0.27,
+        "classification": "not_elevated",
+        "threshold": 0.73,
+        "top_factors": [],
+        "recommendations": [],
+        "explanation_units": "probability",
+        "explanation_note": "SHAP values describe model influence relative to a baseline, not causal effects.",
+        "warnings": [],
+        "disclaimer": "Research estimate, not a medical diagnosis."
+      },
+      "model_features": [
+        "diabetes",
+        "stroke",
+        "sex_binary",
+        "age_range",
+        "bmi",
+        "smoker",
+        "heavy_alcohol",
+        "physical_activity",
+        "education",
+        "income",
+        "high_bp",
+        "high_chol",
+        "chol_check",
+        "fruits",
+        "veggies",
+        "general_health",
+        "mental_health",
+        "physical_health",
+        "diff_walk",
+        "smoker_was_missing",
+        "bp_chol_both",
+        "bmi_obese",
+        "poor_health_days",
+        "age_bmi",
+        "general_health_diffwalk",
+        "age_genhealth",
+        "metabolic_risk_score",
+        "lifestyle_score"
+      ],
+      "excluded_training_columns": {
+        "always": [
+          "heart_disease",
+          "_group_id",
+          "sex"
+        ],
+        "dataset_specific": [
+          "diabetes_severity"
+        ]
+      }
+    },
+    "hypertension": {
+      "route": "/predict/hypertension",
+      "method": "POST",
+      "prediction_meaning": "current_or_prevalent_hypertension_pattern",
+      "not_future_risk": true,
+      "model": {
+        "name": "logreg",
+        "artifact": "models/hypertension_logreg.joblib",
+        "threshold": 0.55,
+        "threshold_source": "validation_f1",
+        "selection_method": "highest average_precision in grouped training cross-validation",
+        "candidate_models": [
+          "logreg",
+          "random_forest",
+          "xgboost",
+          "lightgbm",
+          "catboost"
+        ]
+      },
+      "inputs": {
+        "diabetes": {
+          "required": true,
+          "type": "boolean"
+        },
+        "sex": {
+          "required": true,
+          "type": "category",
+          "allowed_values": [
+            "female",
+            "male"
+          ]
+        },
+        "age": {
+          "required": true,
+          "type": "integer",
+          "minimum": 18,
+          "maximum": 120,
+          "unit": "years"
+        },
+        "height_cm": {
+          "required": true,
+          "type": "number",
+          "minimum": 100,
+          "maximum": 250,
+          "unit": "cm",
+          "used_to_derive": "bmi"
+        },
+        "weight_kg": {
+          "required": true,
+          "type": "number",
+          "minimum": 30,
+          "maximum": 300,
+          "unit": "kg",
+          "used_to_derive": "bmi"
+        },
+        "smoking_status": {
+          "required": true,
+          "type": "category",
+          "allowed_values": [
+            "never",
+            "former",
+            "current"
+          ]
+        },
+        "cigarettes_per_day": {
+          "required": true,
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "unit": "cigarettes/day",
+          "conditional_rules": [
+            "must equal 0 when smoking_status is never or former",
+            "must be greater than 0 when smoking_status is current"
+          ]
+        },
+        "systolic_bp": {
+          "required": true,
+          "type": "number",
+          "minimum": 70,
+          "maximum": 260,
+          "unit": "mmHg"
+        },
+        "diastolic_bp": {
+          "required": true,
+          "type": "number",
+          "minimum": 40,
+          "maximum": 160,
+          "unit": "mmHg",
+          "conditional_rules": [
+            "must be less than systolic_bp"
+          ]
+        },
+        "heart_rate": {
+          "required": true,
+          "type": "number",
+          "minimum": 30,
+          "maximum": 220,
+          "unit": "beats/minute"
+        },
+        "bp_meds": {
+          "required": true,
+          "type": "boolean"
+        },
+        "cholesterol": {
+          "required": true,
+          "type": "number",
+          "minimum": 80,
+          "maximum": 700,
+          "unit": "mg/dL"
+        },
+        "glucose": {
+          "required": true,
+          "type": "number",
+          "minimum": 30,
+          "maximum": 700,
+          "unit": "mg/dL"
+        }
+      },
+      "transformations": {
+        "smoker": "1 when smoking_status is current; otherwise 0",
+        "cigs_per_day": "copy from cigarettes_per_day",
+        "high_bp": "1 when systolic_bp >= 130 or diastolic_bp >= 80; otherwise 0",
+        "high_chol": "1 when cholesterol > 200; otherwise 0",
+        "bp_meds_was_missing": 0
+      },
+      "derived_features": [
+        "sex_binary",
+        "age_range",
+        "bmi",
+        "high_bp",
+        "high_chol",
+        "bp_chol_both",
+        "bmi_obese",
+        "age_bmi",
+        "pulse_pressure",
+        "mean_arterial_pressure",
+        "uncontrolled_bp",
+        "tachycardia",
+        "heavy_smoker",
+        "hyperglycemia",
+        "glucose_bmi",
+        "age_glucose",
+        "metabolic_risk_score"
+      ],
+      "missing_input_behavior": "reject; training-source imputation is documented in common_rules.training_and_preprocessing.missing_values and is not a license to omit API inputs",
+      "limitation": "The target represents prevalent hypertension. Blood-pressure measurements and deterministic derivatives are inputs, so this endpoint must not be presented as future hypertension risk.",
+      "response_example": {
+        "contract_version": "1.2.0",
+        "disease": "hypertension",
+        "model": "logreg",
+        "model_version": "1",
+        "probability": 0.68,
+        "classification": "elevated",
+        "threshold": 0.55,
+        "top_factors": [],
+        "recommendations": [],
+        "explanation_units": "log_odds",
+        "explanation_note": "SHAP values describe model influence relative to a baseline, not causal effects.",
+        "warnings": [
+          "This output estimates a prevalent hypertension pattern, not future hypertension risk."
+        ],
+        "disclaimer": "Research estimate, not a medical diagnosis."
+      },
+      "model_features": [
+        "diabetes",
+        "sex_binary",
+        "age_range",
+        "bmi",
+        "smoker",
+        "cigs_per_day",
+        "systolic_bp",
+        "diastolic_bp",
+        "high_bp",
+        "heart_rate",
+        "bp_meds",
+        "cholesterol",
+        "high_chol",
+        "glucose",
+        "smoker_was_missing",
+        "bp_meds_was_missing",
+        "bp_chol_both",
+        "bmi_obese",
+        "age_bmi",
+        "pulse_pressure",
+        "mean_arterial_pressure",
+        "uncontrolled_bp",
+        "tachycardia",
+        "heavy_smoker",
+        "hyperglycemia",
+        "glucose_bmi",
+        "age_glucose",
+        "metabolic_risk_score"
+      ],
+      "excluded_training_columns": {
+        "always": [
+          "hypertension",
+          "_group_id",
+          "sex"
+        ],
+        "dataset_specific": [
+          "age"
+        ]
+      }
+    },
+    "stroke": {
+      "route": "/predict/stroke",
+      "method": "POST",
+      "model": {
+        "name": "logreg",
+        "artifact": "models/stroke_logreg.joblib",
+        "threshold": 0.76,
+        "threshold_source": "validation_f1",
+        "selection_method": "highest average_precision in grouped training cross-validation",
+        "candidate_models": [
+          "logreg",
+          "random_forest",
+          "xgboost",
+          "lightgbm",
+          "catboost"
+        ]
+      },
+      "inputs": {
+        "heart_disease": {
+          "required": true,
+          "type": "boolean"
+        },
+        "hypertension": {
+          "required": true,
+          "type": "boolean"
+        },
+        "sex": {
+          "required": true,
+          "type": "category",
+          "allowed_values": [
+            "female",
+            "male"
+          ]
+        },
+        "age": {
+          "required": true,
+          "type": "integer",
+          "minimum": 18,
+          "maximum": 120,
+          "unit": "years"
+        },
+        "height_cm": {
+          "required": true,
+          "type": "number",
+          "minimum": 100,
+          "maximum": 250,
+          "unit": "cm",
+          "used_to_derive": "bmi"
+        },
+        "weight_kg": {
+          "required": true,
+          "type": "number",
+          "minimum": 30,
+          "maximum": 300,
+          "unit": "kg",
+          "used_to_derive": "bmi"
+        },
+        "smoking_status": {
+          "required": true,
+          "type": "category",
+          "allowed_values": [
+            "never_smoked",
+            "formerly_smoked",
+            "smokes",
+            "unknown"
+          ]
+        },
+        "glucose": {
+          "required": true,
+          "type": "number",
+          "minimum": 30,
+          "maximum": 700,
+          "unit": "mg/dL"
+        },
+        "ever_married": {
+          "required": true,
+          "type": "boolean"
+        },
+        "work_type": {
+          "required": true,
+          "type": "category",
+          "allowed_values": [
+            "private",
+            "self_employed",
+            "government_job",
+            "never_worked"
+          ]
+        },
+        "residence_type": {
+          "required": true,
+          "type": "category",
+          "allowed_values": [
+            "urban",
+            "rural"
+          ]
+        }
+      },
+      "transformations": {
+        "smoking_status": {
+          "never_smoked": "never smoked",
+          "formerly_smoked": "formerly smoked",
+          "smokes": "smokes",
+          "unknown": "unknown"
+        },
+        "work_type": {
+          "private": "private",
+          "self_employed": "self-employed",
+          "government_job": "govt_job",
+          "never_worked": "never_worked"
+        },
+        "residence_type": {
+          "rural": 0,
+          "urban": 1
+        },
+        "bmi_was_missing": 0
+      },
+      "derived_features": [
+        "sex_binary",
+        "age_range",
+        "bmi",
+        "bmi_obese",
+        "age_bmi",
+        "hyperglycemia",
+        "glucose_bmi",
+        "age_glucose",
+        "smoking_current",
+        "smoking_former",
+        "smoking_unknown",
+        "work_type_private",
+        "work_type_self-employed",
+        "work_type_govt_job",
+        "work_type_never_worked"
+      ],
+      "missing_input_behavior": "reject; training-source imputation is documented in common_rules.training_and_preprocessing.missing_values and is not a license to omit API inputs",
+      "response_example": {
+        "contract_version": "1.2.0",
+        "disease": "stroke",
+        "model": "logreg",
+        "model_version": "1",
+        "probability": 0.18,
+        "classification": "not_elevated",
+        "threshold": 0.76,
+        "top_factors": [],
+        "recommendations": [],
+        "explanation_units": "log_odds",
+        "explanation_note": "SHAP values describe model influence relative to a baseline, not causal effects.",
+        "warnings": [],
+        "disclaimer": "Research estimate, not a medical diagnosis."
+      },
+      "model_features": [
+        "heart_disease",
+        "hypertension",
+        "sex_binary",
+        "age_range",
+        "bmi",
+        "glucose",
+        "ever_married",
+        "residence_type",
+        "bmi_was_missing",
+        "bmi_obese",
+        "age_bmi",
+        "hyperglycemia",
+        "glucose_bmi",
+        "age_glucose",
+        "work_type_private",
+        "work_type_self-employed",
+        "work_type_govt_job",
+        "work_type_never_worked",
+        "smoking_current",
+        "smoking_former",
+        "smoking_unknown"
+      ],
+      "excluded_training_columns": {
+        "always": [
+          "stroke",
+          "_group_id",
+          "sex"
+        ],
+        "dataset_specific": [
+          "age",
+          "smoking_status",
+          "smoker",
+          "work_type"
+        ]
+      }
+    }
+  },
+  "response_schema": {
+    "type": "object",
+    "additional_properties": false,
+    "required": [
+      "contract_version",
+      "disease",
+      "model",
+      "model_version",
+      "probability",
+      "classification",
+      "threshold",
+      "top_factors",
+      "recommendations",
+      "explanation_units",
+      "explanation_note",
+      "warnings",
+      "disclaimer"
+    ],
+    "properties": {
+      "contract_version": {
+        "type": "string",
+        "const": "1.2.0"
+      },
+      "prediction_id": {
+        "type": "string",
+        "format": "uuid",
+        "required_after_persistence_is_implemented": true
+      },
+      "disease": {
+        "type": "string",
+        "enum": [
+          "diabetes",
+          "heart_disease",
+          "hypertension",
+          "stroke"
+        ]
+      },
+      "model": {
+        "type": "string",
+        "enum": [
+          "catboost",
+          "lightgbm",
+          "logreg"
+        ]
+      },
+      "model_version": {
+        "type": "string"
+      },
+      "probability": {
+        "type": "number",
+        "minimum": 0,
+        "maximum": 1
+      },
+      "classification": {
+        "type": "string",
+        "enum": [
+          "elevated",
+          "not_elevated"
+        ]
+      },
+      "threshold": {
+        "type": "number",
+        "minimum": 0,
+        "maximum": 1
+      },
+      "top_factors": {
+        "type": "array",
+        "maxItems": 10,
+        "items": {
+          "type": "object",
+          "additional_properties": false,
+          "required": [
+            "feature",
+            "label",
+            "value",
+            "direction",
+            "importance",
+            "modifiable"
+          ],
+          "properties": {
+            "feature": {
+              "type": "string"
+            },
+            "label": {
+              "type": "string"
+            },
+            "value": {
+              "description": "A user-facing rendering of the request value or source values; encoded interaction products are not exposed"
+            },
+            "direction": {
+              "type": "string",
+              "enum": [
+                "increases_estimate",
+                "decreases_estimate"
+              ]
+            },
+            "importance": {
+              "type": "number",
+              "minimum": 0
+            },
+            "modifiable": {
+              "type": "boolean"
+            }
+          }
+        }
+      },
+      "recommendations": {
+        "type": "array",
+        "maxItems": 5,
+        "description": "The highest-impact applicable counterfactuals drawn from the ten largest SHAP contributors. Scenarios that do not lower the model estimate by at least 0.5 percentage points are omitted.",
+        "items": {
+          "type": "object",
+          "additional_properties": false,
+          "required": [
+            "action",
+            "scenario_type",
+            "contributing_features",
+            "changes",
+            "message",
+            "new_probability",
+            "reduction_percentage_points",
+            "relative_reduction_percent",
+            "causal"
+          ],
+          "properties": {
+            "action": {"type": "string"},
+            "scenario_type": {
+              "type": "string",
+              "enum": ["actionable", "health_management", "contextual"]
+            },
+            "contributing_features": {
+              "type": "array",
+              "items": {"type": "string"}
+            },
+            "changes": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additional_properties": false,
+                "required": ["field", "from_value", "to_value", "unit"],
+                "properties": {
+                  "field": {"type": "string"},
+                  "from_value": {},
+                  "to_value": {},
+                  "unit": {"type": ["string", "null"]}
+                }
+              }
+            },
+            "message": {"type": "string"},
+            "new_probability": {"type": "number", "minimum": 0, "maximum": 1},
+            "reduction_percentage_points": {"type": "number", "exclusiveMinimum": 0},
+            "relative_reduction_percent": {"type": "number", "exclusiveMinimum": 0},
+            "causal": {"type": "boolean", "const": false}
+          }
+        }
+      },
+      "explanation_units": {
+        "type": "string",
+        "enum": [
+          "probability",
+          "raw_model_output",
+          "log_odds"
+        ]
+      },
+      "explanation_note": {
+        "type": "string"
+      },
+      "warnings": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "disclaimer": {
+        "type": "string"
+      }
+    }
+  }
+}

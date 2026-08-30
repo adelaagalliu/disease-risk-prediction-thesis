@@ -1,0 +1,2 @@
+SHAP values for stroke/xgboost are in units: raw margin (log-odds)
+NOT probability units. Don't compare magnitudes directly against models with probability SHAP values.

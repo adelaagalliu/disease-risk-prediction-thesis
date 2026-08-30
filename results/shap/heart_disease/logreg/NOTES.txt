@@ -1,0 +1,2 @@
+SHAP values for heart_disease/logreg are in units: log-odds (linear score)
+NOT probability units. Don't compare magnitudes directly against models with probability SHAP values.
