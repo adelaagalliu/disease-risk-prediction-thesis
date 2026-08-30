@@ -36,6 +36,9 @@ dist/
 tmp/
 temp/
 
+*.docx
+*.xlsx
+
 # Generated Python packaging files
 *.egg-info/
 
