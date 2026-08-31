@@ -13,7 +13,13 @@ env/
 # Secrets
 .env
 .env.*
-!.env.example
+
+# Frontend
+node_modules/
+dist/
+
+coverage/
+*.log
 
 # Jupyter temporary files
 .ipynb_checkpoints/
