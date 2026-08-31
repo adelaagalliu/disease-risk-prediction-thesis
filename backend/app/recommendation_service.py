@@ -15,7 +15,6 @@ GENERAL_HEALTH_IMPROVEMENT = {
     "very_good": "excellent",
 }
 
-
 @dataclass(frozen=True)
 class Candidate:
     action: str
@@ -25,7 +24,6 @@ class Candidate:
     message_prefix: str
     units: dict[str, str]
 
-
 def _reduced_health_days(current: int) -> int | None:
     if current >= 15:
         return current - 5
@@ -34,7 +32,6 @@ def _reduced_health_days(current: int) -> int | None:
     if current >= 3:
         return current - 2
     return None
-
 
 def _weight_target(height_cm: float, weight_kg: float) -> float | None:
     bmi = calculate_bmi(height_cm, weight_kg)
@@ -50,7 +47,6 @@ def _weight_target(height_cm: float, weight_kg: float) -> float | None:
         return None
     target = round(weight_kg + change, 1)
     return target if 30 <= target <= 300 else None
-
 
 def _candidate_interventions(disease: str, request: Any) -> list[Candidate]:
     candidates: list[Candidate] = []
@@ -159,7 +155,6 @@ def _candidate_interventions(disease: str, request: Any) -> list[Candidate]:
         )
 
     return candidates
-
 
 def create_recommendations(
     disease: str,

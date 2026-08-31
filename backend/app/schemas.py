@@ -103,7 +103,6 @@ class StrokeRequest(PatientProfileRequest):
     ]
     residence_type: Literal["urban", "rural"]
 
-
 class TopFactor(BaseModel):
     feature: str
     label: str
@@ -112,13 +111,11 @@ class TopFactor(BaseModel):
     importance: float = Field(ge=0)
     modifiable: bool
 
-
 class RecommendationChange(BaseModel):
     field: str
     from_value: Any
     to_value: Any
     unit: str | None = None
-
 
 class Recommendation(BaseModel):
     action: str
@@ -131,9 +128,8 @@ class Recommendation(BaseModel):
     relative_reduction_percent: float = Field(gt=0)
     causal: Literal[False] = False
 
-
 class PredictionResponse(BaseModel):
-    contract_version: Literal["1.2.0"]
+    contract_version: Literal["1.1.0"]
     disease: Literal["diabetes", "heart_disease", "hypertension", "stroke"]
     model: Literal["catboost", "lightgbm", "logreg"]
     model_version: str

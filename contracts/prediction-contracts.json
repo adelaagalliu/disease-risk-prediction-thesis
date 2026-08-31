@@ -1,5 +1,5 @@
 {
-  "contract_version": "1.2.0",
+  "contract_version": "1.1.0",
   "classification_rule": "elevated when probability >= threshold; otherwise not_elevated",
   "common_rules": {
     "unknown_fields": "reject",
@@ -388,7 +388,7 @@
       },
       "missing_input_behavior": "reject; training-source imputation is documented in common_rules.training_and_preprocessing.missing_values and is not a license to omit API inputs",
       "response_example": {
-        "contract_version": "1.2.0",
+        "contract_version": "1.1.0",
         "disease": "diabetes",
         "model": "catboost",
         "model_version": "1",
@@ -642,7 +642,7 @@
       },
       "missing_input_behavior": "reject; training-source imputation is documented in common_rules.training_and_preprocessing.missing_values and is not a license to omit API inputs",
       "response_example": {
-        "contract_version": "1.2.0",
+        "contract_version": "1.1.0",
         "disease": "heart_disease",
         "model": "lightgbm",
         "model_version": "1",
@@ -844,7 +844,7 @@
       "missing_input_behavior": "reject; training-source imputation is documented in common_rules.training_and_preprocessing.missing_values and is not a license to omit API inputs",
       "limitation": "The target represents prevalent hypertension. Blood-pressure measurements and deterministic derivatives are inputs, so this endpoint must not be presented as future hypertension risk.",
       "response_example": {
-        "contract_version": "1.2.0",
+        "contract_version": "1.1.0",
         "disease": "hypertension",
         "model": "logreg",
         "model_version": "1",
@@ -1036,7 +1036,7 @@
       ],
       "missing_input_behavior": "reject; training-source imputation is documented in common_rules.training_and_preprocessing.missing_values and is not a license to omit API inputs",
       "response_example": {
-        "contract_version": "1.2.0",
+        "contract_version": "1.1.0",
         "disease": "stroke",
         "model": "logreg",
         "model_version": "1",
@@ -1109,7 +1109,7 @@
     "properties": {
       "contract_version": {
         "type": "string",
-        "const": "1.2.0"
+        "const": "1.1.0"
       },
       "prediction_id": {
         "type": "string",

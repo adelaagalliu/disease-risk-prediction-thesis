@@ -29,7 +29,7 @@ def test_prediction_contract_matches_registry():
         (PROJECT_DIR / "contracts" / "prediction-contracts.json").read_text()
     )
 
-    assert contract["contract_version"] == "1.2.0"
+    assert contract["contract_version"] == "1.1.0"
 
     for disease, config in MODEL_CONFIG.items():
         disease_contract = contract["diseases"][disease]

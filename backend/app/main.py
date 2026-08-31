@@ -76,7 +76,7 @@ def predict(disease: Disease, payload: dict[str, Any]) -> PredictionResponse:
         )
 
     return PredictionResponse(
-        contract_version="1.2.0",
+        contract_version="1.1.0",
         disease=disease,
         model=model_data["model_name"],
         model_version="1",
