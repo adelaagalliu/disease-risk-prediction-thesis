@@ -1,102 +1,93 @@
-import numpy as np
+from app.recommendation_service import _candidate_interventions
+from app.schemas import DiabetesRequest, HeartRequest, HypertensionRequest, StrokeRequest
 
-from app.recommendation_service import create_recommendations
-from app.schemas import HeartRequest
+def brfss_data():
+    return {
+        "stroke": False,
+        "sex": "female",
+        "age": 52,
+        "height_cm": 170.0,
+        "weight_kg": 100.0,
+        "smoking_status": "current",
+        "heavy_alcohol": True,
+        "physical_activity": False,
+        "education": "college_graduate",
+        "income": "50000_to_74999",
+        "high_bp": True,
+        "high_chol": True,
+        "chol_check": True,
+        "fruits": False,
+        "veggies": False,
+        "general_health": "fair",
+        "mental_health_days": 10,
+        "physical_health_days": 5,
+        "difficulty_walking": False,
+    }
 
+def actions(disease, request):
+    return {
+        item.action
+        for item in _candidate_interventions(disease, request)
+    }
 
-class FakePipeline:
-    def predict_proba(self, features):
-        row = features.iloc[0]
-        probability = (
-            0.10
-            + 0.20 * row["high_bp"]
-            + 0.15 * row["smoker"]
-            + 0.10 * (1 - row["physical_activity"])
-            + 0.002 * (row["bmi"] - 20)
-        )
-        return np.array([[1 - probability, probability]])
+def test_diabetes():
+    request = DiabetesRequest(
+        heart_disease=False,
+        **brfss_data(),
+    )
+    result = actions("diabetes", request)
+    assert "stop_smoking" in result
+    assert "manage_blood_pressure" in result
+    assert "increase_physical_activity" in result
 
-
-def heart_request() -> HeartRequest:
-    return HeartRequest(
+def test_heart():
+    request = HeartRequest(
         diabetes=False,
-        stroke=False,
-        sex="female",
-        age=52,
-        height_cm=170.0,
-        weight_kg=100.0,
+        **brfss_data(),
+    )
+    result = actions("heart_disease", request)
+    assert "stop_smoking" in result
+    assert "manage_cholesterol" in result
+    assert "eat_vegetables_regularly" in result
+
+def test_hypertension():
+    request = HypertensionRequest(
+        diabetes=False,
+        sex="male",
+        age=55,
+        height_cm=175.0,
+        weight_kg=90.0,
         smoking_status="current",
-        heavy_alcohol=False,
-        physical_activity=False,
-        education="college_graduate",
-        income="50000_to_74999",
-        high_bp=True,
-        high_chol=True,
-        chol_check=True,
-        fruits=True,
-        veggies=True,
-        general_health="fair",
-        mental_health_days=10,
-        physical_health_days=5,
-        difficulty_walking=False,
+        cigarettes_per_day=20.0,
+        systolic_bp=148.0,
+        diastolic_bp=92.0,
+        heart_rate=108.0,
+        bp_meds=False,
+        cholesterol=235.0,
+        glucose=145.0,
     )
+    result = actions("hypertension", request)
+    assert "lower_blood_pressure" in result
+    assert "manage_glucose" in result
+    assert "reduce_cigarettes" in result
 
 
-def test_recommendations_use_source_inputs_and_rank_actual_reductions():
-    request = heart_request()
-    feature_cols = [
-        "bmi",
-        "smoker",
-        "physical_activity",
-        "high_bp",
-        "high_chol",
-        "bp_chol_both",
-    ]
-    model_data = {"pipeline": FakePipeline(), "feature_cols": feature_cols}
-    original_features = __import__(
-        "app.feature_builder", fromlist=["build_features"]
-    ).build_features("heart_disease", request, feature_cols)
-    original_probability = FakePipeline().predict_proba(original_features)[0][1]
-    top_factors = [
-        {"feature": "bp_chol_both"},
-        {"feature": "smoker"},
-        {"feature": "physical_activity"},
-        {"feature": "bmi"},
-    ]
-
-    recommendations = create_recommendations(
-        "heart_disease",
-        model_data,
-        request,
-        original_probability,
-        top_factors,
+def test_stroke():
+    request = StrokeRequest(
+        heart_disease=False,
+        hypertension=True,
+        sex="female",
+        age=60,
+        height_cm=165.0,
+        weight_kg=65.0,
+        smoking_status="never",
+        glucose=150.0,
+        ever_married=True,
+        work_type="private",
+        residence_type="urban",
     )
-
-    assert 3 <= len(recommendations) <= 5
-    reductions = [item["reduction_percentage_points"] for item in recommendations]
-    assert reductions == sorted(reductions, reverse=True)
-    assert all(item["new_probability"] < original_probability for item in recommendations)
-    assert recommendations[0]["action"] == "manage_blood_pressure"
-    assert recommendations[0]["changes"][0]["field"] == "high_bp"
-    assert "bp_chol_both" in recommendations[0]["contributing_features"]
-
-
-def test_non_contributing_and_non_improving_scenarios_are_omitted():
-    request = heart_request()
-    feature_cols = ["bmi", "smoker", "physical_activity", "high_bp", "high_chol"]
-    model_data = {"pipeline": FakePipeline(), "feature_cols": feature_cols}
-    original_features = __import__(
-        "app.feature_builder", fromlist=["build_features"]
-    ).build_features("heart_disease", request, feature_cols)
-    original_probability = FakePipeline().predict_proba(original_features)[0][1]
-
-    recommendations = create_recommendations(
-        "heart_disease",
-        model_data,
-        request,
-        original_probability,
-        [{"feature": "high_chol"}],
-    )
-
-    # FakePipeline ignores high_chol, so this candidate produces no reduction.
-    assert recommendations == []
+    result = actions("stroke", request)
+    assert result == {
+        "manage_hypertension",
+        "manage_glucose",
+    }

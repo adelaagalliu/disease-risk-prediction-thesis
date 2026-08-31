@@ -126,6 +126,9 @@ def display_feature_value(feature: str, request: Any, value: Any) -> Any:
         "bmi": bmi,
         "bmi_obese": f"BMI {bmi}",
         "smoker": request.smoking_status,
+        "glucose": (
+            request.glucose if hasattr(request, "glucose") else None
+        ),
         "age_bmi": f"Age {request.age}; BMI {bmi}",
         "glucose_bmi": (
             f"Glucose {request.glucose:g} mg/dL; BMI {bmi}"

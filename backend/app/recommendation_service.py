@@ -93,6 +93,18 @@ def _candidate_interventions(disease: str, request: Any) -> list[Candidate]:
             "If you stopped smoking",
         )
 
+        if disease == "hypertension" and request.cigarettes_per_day >= 5:
+            reduced_cigarettes = round(request.cigarettes_per_day / 2, 1)
+            add(
+                "reduce_cigarettes",
+                "actionable",
+                {"cigs_per_day", "heavy_smoker"},
+                {"cigarettes_per_day": reduced_cigarettes},
+                ("With modeled cigarette use reduced from "
+                 f"{request.cigarettes_per_day:g} to {reduced_cigarettes:g} per day"),
+                {"cigarettes_per_day": "cigarettes/day"},
+            )
+    
     if disease in {"diabetes", "heart_disease"}:
         boolean_rules = (
             ("manage_blood_pressure", "health_management", "high_bp", False,
@@ -144,6 +156,72 @@ def _candidate_interventions(disease: str, request: Any) -> list[Candidate]:
                     f"With {reduction} fewer {label} days per month",
                     {field: "days/month"},
                 )
+                
+    if disease in {"hypertension", "stroke"} and request.glucose >= 126:
+        target_glucose = max(110.0, request.glucose - 20.0)
+        add(
+            "manage_glucose",
+            "health_management",
+            {"glucose", "hyperglycemia", "glucose_bmi", "age_glucose"},
+            {"glucose": target_glucose},
+            "With a modeled reduction in measured glucose",
+            {"glucose": "mg/dL"},
+            )
+
+    if disease == "hypertension":
+        blood_pressure_updates: dict[str, Any] = {}
+        if request.systolic_bp >= 130:
+            blood_pressure_updates["systolic_bp"] = max(120.0, request.systolic_bp - 10.0)
+        if request.diastolic_bp >= 80:
+            blood_pressure_updates["diastolic_bp"] = max(80.0, request.diastolic_bp - 5.0)
+        if "diastolic_bp" in blood_pressure_updates:
+            resulting_systolic = blood_pressure_updates.get(
+                "systolic_bp", request.systolic_bp
+            )
+            blood_pressure_updates["diastolic_bp"] = min(
+                blood_pressure_updates["diastolic_bp"], resulting_systolic - 1.0
+            )
+        if blood_pressure_updates:
+            add(
+                "lower_blood_pressure",
+                "health_management",
+                {
+                    "systolic_bp",
+                    "diastolic_bp",
+                    "high_bp",
+                    "pulse_pressure",
+                    "mean_arterial_pressure",
+                    "uncontrolled_bp",
+                },
+                blood_pressure_updates,
+                "With a modeled reduction in measured blood pressure",
+                {
+                    "systolic_bp": "mmHg",
+                    "diastolic_bp": "mmHg",
+                },
+            )
+
+        if request.cholesterol > 200:
+            target_cholesterol = max(200.0, request.cholesterol - 20.0)
+            add(
+                "manage_cholesterol",
+                "health_management",
+                {"cholesterol", "high_chol"},
+                {"cholesterol": target_cholesterol},
+                "With a modeled reduction in measured cholesterol",
+                {"cholesterol": "mg/dL"},
+            )
+
+        if request.heart_rate > 100:
+            target_heart_rate = max(90.0, request.heart_rate - 10.0)
+            add(
+                "evaluate_high_heart_rate",
+                "contextual",
+                {"heart_rate", "tachycardia"},
+                {"heart_rate": target_heart_rate},
+                "With a modeled lower heart-rate measurement",
+                {"heart_rate": "bpm"},
+            )
 
     if disease == "stroke" and request.hypertension:
         add(
