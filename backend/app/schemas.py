@@ -131,7 +131,7 @@ class Recommendation(BaseModel):
 class PredictionResponse(BaseModel):
     contract_version: Literal["1.1.0"]
     disease: Literal["diabetes", "heart_disease", "hypertension", "stroke"]
-    model: Literal["catboost", "lightgbm", "logreg"]
+    model: Literal["logreg"]
     model_version: str
     probability: float = Field(ge=0, le=1)
     classification: Literal["elevated", "not_elevated"]

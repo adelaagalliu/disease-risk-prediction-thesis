@@ -17,10 +17,22 @@ except ImportError:
     HAS_MPL = False
 
 from config import (
-    DATASETS, GROUP_COL, MODELS_DIR, MODEL_NAMES,
+    DATASETS, GROUP_COL, MODELS_DIR,
     MODEL_SELECTION_FILE, RESULTS_DIR, THRESHOLD_METRIC, N_BOOTSTRAP,
     BOOTSTRAP_ALPHA, CALIBRATION_BINS, load_split,
 )
+
+DATASET_LABELS = {
+    "diabetes": "Diabeti",
+    "heart_disease": "Sëmundja e zemrës",
+    "hypertension": "Hipertensioni",
+    "stroke": "Insulti cerebral",
+}
+MODEL_LABELS = {
+    "logreg": "Regresioni Logjistik",
+    "prevalence_baseline": "Modeli bazë i prevalencës",
+}
+SPLIT_LABELS = {"val": "validim", "test": "test"}
 
 def _score_at_threshold(y_true, y_proba, threshold, metric):
     y_pred = (y_proba >= threshold).astype(int)
@@ -56,15 +68,52 @@ def bootstrap_ci(y_true, y_proba, metric_fn, groups=None, n_boot=N_BOOTSTRAP,
     groups = np.asarray(groups)
     if len(groups) != len(y_true):
         raise ValueError("groups must have the same length as y_true")
-    unique_groups = np.unique(groups)
-    group_rows = {group: np.flatnonzero(groups == group) for group in unique_groups}
+    unique_groups, group_index = np.unique(groups, return_inverse=True)
+    group_probabilities = np.full(len(unique_groups), 1 / len(unique_groups))
+
+    # Scores never change across bootstrap samples, so sort and identify tied
+    # score groups once. This is equivalent to calling sklearn with frequency
+    # weights, but avoids repeating an expensive sort 1000 times.
+    descending = metric_fn is average_precision_score
+    order = np.argsort(y_proba, kind="mergesort")
+    if descending:
+        order = order[::-1]
+    sorted_scores = y_proba[order]
+    sorted_target = y_true[order]
+    tie_starts = np.r_[0, np.flatnonzero(np.diff(sorted_scores)) + 1]
+
+    def weighted_score(sample_weight):
+        weight = sample_weight[order]
+        positive = np.add.reduceat(weight * sorted_target, tie_starts)
+        negative = np.add.reduceat(weight * (1 - sorted_target), tie_starts)
+        total_positive = positive.sum()
+        total_negative = negative.sum()
+        if metric_fn is roc_auc_score:
+            negative_before = np.cumsum(negative) - negative
+            return np.sum(positive * (negative_before + 0.5 * negative)) / (
+                total_positive * total_negative
+            )
+        if metric_fn is average_precision_score:
+            true_positive = np.cumsum(positive)
+            false_positive = np.cumsum(negative)
+            denominator = true_positive + false_positive
+            precision = np.divide(
+                true_positive,
+                denominator,
+                out=np.zeros_like(true_positive, dtype=float),
+                where=denominator > 0,
+            )
+            recall = true_positive / total_positive
+            return np.sum(np.diff(np.r_[0, recall]) * precision)
+        return metric_fn(y_true, y_proba, sample_weight=sample_weight)
+
     scores = []
     for _ in range(n_boot):
-        sampled_groups = rng.choice(unique_groups, size=len(unique_groups), replace=True)
-        idx = np.concatenate([group_rows[group] for group in sampled_groups])
-        if len(np.unique(y_true[idx])) < 2:
+        group_counts = rng.multinomial(len(unique_groups), group_probabilities)
+        sample_weight = group_counts[group_index]
+        if not sample_weight[y_true == 0].sum() or not sample_weight[y_true == 1].sum():
             continue  # skip degenerate resamples with only one class
-        scores.append(metric_fn(y_true[idx], y_proba[idx]))
+        scores.append(weighted_score(sample_weight))
     scores = np.array(scores)
     if not len(scores):
         raise ValueError("No valid bootstrap samples contained both target classes")
@@ -99,11 +148,17 @@ def save_calibration_plot(y_true, y_proba, dataset_name, model_name, split_name,
     out_path = out_dir / f"{dataset_name}_{model_name}_{split_name}.png"
 
     fig, ax = plt.subplots(figsize=(5, 5))
-    ax.plot(prob_pred, prob_true, marker="o", label=model_name)
-    ax.plot([0, 1], [0, 1], linestyle="--", color="gray", label="Perfectly calibrated")
-    ax.set_xlabel("Mean predicted probability")
-    ax.set_ylabel("Fraction of positives")
-    ax.set_title(f"{dataset_name} - {model_name} ({split_name})")
+    model_label = MODEL_LABELS.get(model_name, model_name)
+    dataset_label = DATASET_LABELS.get(dataset_name, dataset_name)
+    split_label = SPLIT_LABELS.get(split_name, split_name)
+    ax.plot(prob_pred, prob_true, marker="o", label=model_label)
+    ax.plot(
+        [0, 1], [0, 1], linestyle="--", color="gray",
+        label="Kalibrim i përsosur",
+    )
+    ax.set_xlabel("Probabiliteti mesatar i parashikuar")
+    ax.set_ylabel("Përqindja e rasteve pozitive")
+    ax.set_title(f"{dataset_label} – {model_label} ({split_label})")
     ax.legend()
     fig.tight_layout()
     fig.savefig(out_path)
@@ -121,6 +176,8 @@ def compute_metrics(y_true, y_proba, threshold, split_name) -> dict:
         "accuracy": accuracy_score(y_true, y_pred),
         "precision": precision_score(y_true, y_pred, zero_division=0),
         "recall": recall_score(y_true, y_pred, zero_division=0),
+        "sensitivity": recall_score(y_true, y_pred, zero_division=0),
+        "specificity": float(tn / (tn + fp)) if (tn + fp) else 0.0,
         "f1": f1_score(y_true, y_pred, zero_division=0),
         "roc_auc": roc_auc_score(y_true, y_proba),
         "pr_auc": average_precision_score(y_true, y_proba),
@@ -160,6 +217,31 @@ def evaluate_model(pipeline, feature_cols, target, splits: dict,
 
     return results
 
+def evaluate_prevalence_baseline(train_df, target, splits: dict,
+                                 dataset_name: str = None) -> dict:
+    """Evaluate a constant probability equal to training-set prevalence."""
+    prevalence = float(train_df[target].mean())
+    results = {}
+    for split_name, df in splits.items():
+        y_true = df[target]
+        y_proba = np.full(len(df), prevalence)
+        groups = df[GROUP_COL] if GROUP_COL in df else None
+        results[split_name] = {
+            "prediction_rule": "probabilitet konstant, i barabartë me prevalencën në grupin e trajnimit",
+            "training_prevalence": prevalence,
+            "default_threshold": compute_metrics(y_true, y_proba, 0.5, split_name),
+            "roc_auc_ci": bootstrap_ci(y_true, y_proba, roc_auc_score, groups=groups),
+            "pr_auc_ci": bootstrap_ci(
+                y_true, y_proba, average_precision_score, groups=groups
+            ),
+            "calibration": compute_calibration(y_true, y_proba),
+        }
+        if split_name == "test" and dataset_name:
+            save_calibration_plot(
+                y_true, y_proba, dataset_name, "prevalence_baseline", split_name
+            )
+    return results
+
 def main():
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
     if not MODEL_SELECTION_FILE.exists():
@@ -172,42 +254,47 @@ def main():
 
     for name, data_cfg in DATASETS.items():
         target = data_cfg["target"]
-        print(f"\nEvaluating models for: {name}")
+        print(f"\nEvaluating Logistic Regression and prevalence baseline for: {name}")
         selection = selections[name]
-        selected_name = selection["model"]
+        selected_name = "logreg"
+        if selection["model"] != selected_name:
+            raise ValueError(
+                f"[{name}] model_selection.json is stale; rerun train.py"
+            )
         all_results[name] = {"selection": selection, "models": {}}
 
         splits = {split_name: load_split(name, split_name) for split_name in ("val", "test")}
+        train_df = load_split(name, "train")
+        model_path = MODELS_DIR / f"{name}_{selected_name}.joblib"
+        saved_model = joblib.load(model_path)
+        pipeline, feature_cols = saved_model["pipeline"], saved_model["feature_cols"]
 
-        evaluation_order = [selected_name] + [m for m in MODEL_NAMES if m != selected_name]
-        for model_name in evaluation_order:
-            model_path = MODELS_DIR / f"{name}_{model_name}.joblib"
-            if not model_path.exists():
-                print(f"  skipping {model_name}: no saved model at {model_path}")
-                continue
+        model_results = evaluate_model(
+            pipeline, feature_cols, target, splits,
+            dataset_name=name, model_name=selected_name,
+        )
+        baseline_results = evaluate_prevalence_baseline(
+            train_df, target, splits, dataset_name=name
+        )
+        all_results[name]["models"][selected_name] = model_results
+        all_results[name]["models"]["prevalence_baseline"] = baseline_results
 
-            saved_model = joblib.load(model_path)
-            pipeline, feature_cols = saved_model["pipeline"], saved_model["feature_cols"]
-
-            model_results = evaluate_model(pipeline, feature_cols, target, splits,
-                                            dataset_name=name, model_name=model_name)
-            all_results[name]["models"][model_name] = model_results
-
-            role = "PRIMARY (selected by grouped training CV)" if model_name == selected_name else "secondary benchmark"
-            print(f"  {model_name}: {role}")
-
-            for split_name in ("val", "test"):
-                d = model_results[split_name]["default_threshold"]
-                t = model_results[split_name]["tuned_threshold"]
-                roc_ci = model_results[split_name]["roc_auc_ci"]
-                pr_ci = model_results[split_name]["pr_auc_ci"]
-                brier = model_results[split_name]["calibration"]["brier_score"]
-                print(f"  [{split_name}] {model_name:15s} "
-                      f"\n@0.50 -> prec={d['precision']:.3f} rec={d['recall']:.3f} f1={d['f1']:.3f}  |  "
-                      f"\n@{t['threshold']:.2f} -> prec={t['precision']:.3f} rec={t['recall']:.3f} f1={t['f1']:.3f}  |  "
-                      f"roc_auc={d['roc_auc']:.3f} pr_auc={d['pr_auc']:.3f}"
-                      f"\n  95% CI -> roc_auc=[{roc_ci['lower']:.3f}, {roc_ci['upper']:.3f}]  "
-                      f"pr_auc=[{pr_ci['lower']:.3f}, {pr_ci['upper']:.3f}]  brier={brier:.3f}\n")
+        for split_name in ("val", "test"):
+            d = model_results[split_name]["default_threshold"]
+            t = model_results[split_name]["tuned_threshold"]
+            b = baseline_results[split_name]["default_threshold"]
+            print(
+                f"  [{split_name}] logreg: ROC-AUC={d['roc_auc']:.3f}, "
+                f"PR-AUC={d['pr_auc']:.3f}, F1={t['f1']:.3f}, "
+                f"sensitivity={t['sensitivity']:.3f}, specificity={t['specificity']:.3f}, "
+                f"Brier={model_results[split_name]['calibration']['brier_score']:.3f}"
+            )
+            print(
+                f"  [{split_name}] prevalence baseline: ROC-AUC={b['roc_auc']:.3f}, "
+                f"PR-AUC={b['pr_auc']:.3f}, F1={b['f1']:.3f}, "
+                f"sensitivity={b['sensitivity']:.3f}, specificity={b['specificity']:.3f}, "
+                f"Brier={baseline_results[split_name]['calibration']['brier_score']:.3f}"
+            )
 
     out_path = RESULTS_DIR / "metrics.json"
     with open(out_path, "w") as f:

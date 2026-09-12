@@ -1,0 +1,6 @@
+Analizat përdorin vetëm të dhënat e trajnimit dhe një rresht për çdo profil të përsëritur.
+Variablat e vazhdueshme paraqiten me mesatare (DS), medianë [diapazon ndërkuartilor, IQR], testin t të Welch-it dhe testin U të Mann–Whitney-t.
+Variablat kategorike paraqiten me n (%), testin khi-katror ose testin ekzakt të Fisher-it kur frekuencat e pritshme janë të vogla.
+Regresioni Logjistik inferencial është pa peshim dhe pa penalizim; ai është i ndarë nga modeli parashikues.
+Për variablat e vazhdueshme dhe rendore, raporti i gjasave jepet për një rritje me një devijim standard.
+Vlerat p nuk janë korrigjuar për krahasime të shumëfishta dhe lidhjet nuk duhet të interpretohen si shkakësore.

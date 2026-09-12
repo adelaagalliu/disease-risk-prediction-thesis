@@ -145,30 +145,27 @@
       "feature_engineering_order": "after splitting and after train-fitted imputation",
       "model_search": {
         "candidates": [
-          "logreg",
-          "random_forest",
-          "xgboost",
-          "lightgbm",
-          "catboost"
+          "logreg"
         ],
         "method": "RandomizedSearchCV",
         "iterations_per_model": 10,
         "cross_validation": "3-fold StratifiedGroupKFold on training data",
         "selection_metric": "average_precision",
-        "primary_model_selection_source": "grouped training cross-validation only",
-        "class_imbalance": "model-specific class weighting; no synthetic oversampling",
+        "primary_model_selection_source": "Logistic Regression prespecified; grouped training cross-validation tunes regularization",
+        "class_imbalance": "no class weighting or synthetic oversampling; validation threshold tuning addresses the sensitivity-specificity trade-off",
         "threshold_selection": "maximize F1 on validation over thresholds 0.01 to 0.99 in 0.01 steps",
         "test_usage": "held out for final evaluation; not used for model or threshold selection"
       },
       "scaling": {
-        "logreg": "StandardScaler for continuous and ordinal columns, fit inside the training pipeline",
-        "tree_models": "passthrough; no scaling"
+        "logreg": "StandardScaler for continuous and ordinal columns, fit inside the training pipeline"
       },
       "evaluation": {
         "threshold_dependent": [
           "accuracy",
           "precision",
           "recall",
+          "sensitivity",
+          "specificity",
           "f1",
           "confusion_matrix"
         ],
@@ -177,7 +174,8 @@
           "average_precision"
         ],
         "uncertainty": "95% percentile confidence intervals from 1000 group-bootstrap resamples",
-        "calibration": "Brier score and 10-bin quantile reliability curve"
+        "calibration": "Brier score and 10-bin quantile reliability curve",
+        "predictive_baseline": "constant probability equal to training prevalence; majority class at threshold 0.50"
       },
       "explainability": {
         "method": "SHAP",
@@ -193,17 +191,13 @@
       "route": "/predict/diabetes",
       "method": "POST",
       "model": {
-        "name": "catboost",
-        "artifact": "models/diabetes_catboost.joblib",
-        "threshold": 0.63,
+        "name": "logreg",
+        "artifact": "models/diabetes_logreg.joblib",
+        "threshold": 0.21000000000000002,
         "threshold_source": "validation_f1",
-        "selection_method": "highest average_precision in grouped training cross-validation",
+        "selection_method": "prespecified Logistic Regression with regularization tuned by grouped training cross-validation",
         "candidate_models": [
-          "logreg",
-          "random_forest",
-          "xgboost",
-          "lightgbm",
-          "catboost"
+          "logreg"
         ]
       },
       "inputs": {
@@ -390,11 +384,11 @@
       "response_example": {
         "contract_version": "1.1.0",
         "disease": "diabetes",
-        "model": "catboost",
+        "model": "logreg",
         "model_version": "1",
         "probability": 0.34,
         "classification": "not_elevated",
-        "threshold": 0.63,
+        "threshold": 0.21000000000000002,
         "top_factors": [],
         "recommendations": [],
         "explanation_units": "probability",
@@ -447,17 +441,13 @@
       "route": "/predict/heart_disease",
       "method": "POST",
       "model": {
-        "name": "lightgbm",
-        "artifact": "models/heart_disease_lightgbm.joblib",
-        "threshold": 0.73,
+        "name": "logreg",
+        "artifact": "models/heart_disease_logreg.joblib",
+        "threshold": 0.17,
         "threshold_source": "validation_f1",
-        "selection_method": "highest average_precision in grouped training cross-validation",
+        "selection_method": "prespecified Logistic Regression with regularization tuned by grouped training cross-validation",
         "candidate_models": [
-          "logreg",
-          "random_forest",
-          "xgboost",
-          "lightgbm",
-          "catboost"
+          "logreg"
         ]
       },
       "inputs": {
@@ -644,11 +634,11 @@
       "response_example": {
         "contract_version": "1.1.0",
         "disease": "heart_disease",
-        "model": "lightgbm",
+        "model": "logreg",
         "model_version": "1",
         "probability": 0.27,
         "classification": "not_elevated",
-        "threshold": 0.73,
+        "threshold": 0.17,
         "top_factors": [],
         "recommendations": [],
         "explanation_units": "probability",
@@ -705,15 +695,11 @@
       "model": {
         "name": "logreg",
         "artifact": "models/hypertension_logreg.joblib",
-        "threshold": 0.55,
+        "threshold": 0.34,
         "threshold_source": "validation_f1",
-        "selection_method": "highest average_precision in grouped training cross-validation",
+        "selection_method": "prespecified Logistic Regression with regularization tuned by grouped training cross-validation",
         "candidate_models": [
-          "logreg",
-          "random_forest",
-          "xgboost",
-          "lightgbm",
-          "catboost"
+          "logreg"
         ]
       },
       "inputs": {
@@ -850,7 +836,7 @@
         "model_version": "1",
         "probability": 0.68,
         "classification": "elevated",
-        "threshold": 0.55,
+        "threshold": 0.34,
         "top_factors": [],
         "recommendations": [],
         "explanation_units": "log_odds",
@@ -907,15 +893,11 @@
       "model": {
         "name": "logreg",
         "artifact": "models/stroke_logreg.joblib",
-        "threshold": 0.76,
+        "threshold": 0.19,
         "threshold_source": "validation_f1",
-        "selection_method": "highest average_precision in grouped training cross-validation",
+        "selection_method": "prespecified Logistic Regression with regularization tuned by grouped training cross-validation",
         "candidate_models": [
-          "logreg",
-          "random_forest",
-          "xgboost",
-          "lightgbm",
-          "catboost"
+          "logreg"
         ]
       },
       "inputs": {
@@ -1042,7 +1024,7 @@
         "model_version": "1",
         "probability": 0.18,
         "classification": "not_elevated",
-        "threshold": 0.76,
+        "threshold": 0.19,
         "top_factors": [],
         "recommendations": [],
         "explanation_units": "log_odds",
@@ -1128,8 +1110,6 @@
       "model": {
         "type": "string",
         "enum": [
-          "catboost",
-          "lightgbm",
           "logreg"
         ]
       },

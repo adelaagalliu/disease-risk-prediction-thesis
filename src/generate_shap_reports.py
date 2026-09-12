@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import joblib
 import shap
+import re
 
 from config import (
     DATASETS, MODELS_DIR, MODEL_NAMES, RESULTS_DIR, RANDOM_STATE,
@@ -16,8 +17,6 @@ try:
 except ImportError:
     HAS_MPL = False
 
-TREE_MODELS = {"random_forest", "xgboost", "lightgbm", "catboost"}
-
 def get_transformed_feature_names(preprocessor, feature_cols):
     try:
         names = preprocessor.get_feature_names_out()
@@ -25,43 +24,42 @@ def get_transformed_feature_names(preprocessor, feature_cols):
     except Exception:
         return feature_cols
 
-def build_explainer(model_name, model, background, feature_perturbation="interventional"):
-    if model_name in TREE_MODELS:
-        if feature_perturbation == "tree_path_dependent":
-            # No background data needed; uses the tree's own training
-            # statistics. Cannot use model_output="probability" in this
-            # mode -- values come out in raw margin (log-odds) units.
-            return shap.TreeExplainer(model, feature_perturbation="tree_path_dependent")
-        return shap.TreeExplainer(model, data=background, model_output="probability")
-    if model_name == "logreg":
-        return shap.LinearExplainer(model, background)
-    raise ValueError(f"No SHAP explainer configured for model type: {model_name}")
+def build_explainer(model_name, model, background):
+    if model_name != "logreg":
+        raise ValueError(f"No SHAP explainer configured for model type: {model_name}")
+    return shap.LinearExplainer(model, background)
 
 def compute_shap_values(model_name, model, background, X_explain):
-    """
-    Returns (shap_values, units_label). Tries the interventional,
-    probability-output explainer first (exact, probability-scale, needs
-    background data). Some tree models -- notably xgboost trained with
-    native categorical feature support -- don't support that mode
-    (NotImplementedError: "Categorical split is not yet supported").
-    In that case we fall back to tree_path_dependent perturbation, which
-    works with categorical splits but only produces raw-margin (log-odds)
-    output, not probability.
-    """
-    if model_name in TREE_MODELS:
-        try:
-            explainer = build_explainer(model_name, model, background)
-            return explainer(X_explain), "probability"
-        except NotImplementedError as e:
-            print(f"    note: interventional probability-output TreeExplainer failed "
-                  f"({e}); falling back to tree_path_dependent (raw margin / log-odds units)")
-            explainer = build_explainer(model_name, model, background,
-                                         feature_perturbation="tree_path_dependent")
-            return explainer(X_explain), "raw margin (log-odds)"
-
     explainer = build_explainer(model_name, model, background)
-    units = "log-odds (linear score)" if model_name == "logreg" else "probability"
-    return explainer(X_explain), units
+    return explainer(X_explain), "logaritmi i gjasave (rezultati linear)"
+
+def translate_shap_plot_text(fig):
+    translations = {
+        "Feature value": "Vlera e variablës",
+        "High": "E lartë",
+        "Low": "E ulët",
+        "higher": "më lart",
+        "lower": "më poshtë",
+        "base value": "vlera bazë",
+    }
+    for item in fig.findobj():
+        if hasattr(item, "get_text") and hasattr(item, "set_text"):
+            current = item.get_text()
+            if current in translations:
+                item.set_text(translations[current])
+    for ax in fig.axes:
+        tick_labels = [item.get_text() for item in ax.get_yticklabels()]
+        translated_labels = []
+        changed = False
+        for label in tick_labels:
+            translated = translations.get(label, label)
+            translated = re.sub(
+                r"^(\d+) other features$", r"\1 variabla të tjera", translated
+            )
+            translated_labels.append(translated)
+            changed = changed or translated != label
+        if changed:
+            ax.set_yticks(ax.get_yticks(), labels=translated_labels)
 
 def extract_values_and_base(shap_values):
     """
@@ -109,12 +107,18 @@ def explain_one_model(dataset_name: str, model_name: str, out_root):
 
     if HAS_MPL:
         shap.summary_plot(values, X_explain, feature_names=feature_names, show=False)
+        fig = plt.gcf()
+        plt.gca().set_xlabel("Vlera SHAP (ndikimi në rezultatin e modelit)")
+        translate_shap_plot_text(fig)
         plt.tight_layout()
         plt.savefig(out_dir / "summary_beeswarm.png", dpi=150)
         plt.close()
 
         shap.summary_plot(values, X_explain, feature_names=feature_names,
                            plot_type="bar", show=False)
+        fig = plt.gcf()
+        plt.gca().set_xlabel("Ndikimi mesatar absolut në rezultatin e modelit")
+        translate_shap_plot_text(fig)
         plt.tight_layout()
         plt.savefig(out_dir / "summary_bar.png", dpi=150)
         plt.close()
@@ -128,6 +132,9 @@ def explain_one_model(dataset_name: str, model_name: str, out_root):
                 feature_names=feature_names,
             )
             shap.plots.waterfall(expl, show=False)
+            fig = plt.gcf()
+            plt.gca().set_xlabel("Rezultati në shkallën e logaritmit të gjasave")
+            translate_shap_plot_text(fig)
             plt.tight_layout()
             plt.savefig(out_dir / f"waterfall_example_{i}.png", dpi=150)
             plt.close()
@@ -135,14 +142,24 @@ def explain_one_model(dataset_name: str, model_name: str, out_root):
         print("    matplotlib not available: skipping plots, saving importance table only")
 
     mean_abs = np.abs(values).mean(axis=0)
-    importance_df = pd.DataFrame({"feature": feature_names, "mean_abs_shap": mean_abs})
-    importance_df = importance_df.sort_values("mean_abs_shap", ascending=False)
+    importance_df = pd.DataFrame({
+        "variabla": feature_names,
+        "mesatarja_e_vleres_absolute_SHAP": mean_abs,
+    })
+    importance_df = importance_df.sort_values(
+        "mesatarja_e_vleres_absolute_SHAP", ascending=False
+    )
     importance_df.to_csv(out_dir / "feature_importance.csv", index=False)
 
-    with open(out_dir / "NOTES.txt", "w") as f:
-        f.write(f"SHAP values for {dataset_name}/{model_name} are in units: {units}\n")
-        if units != "probability":
-            f.write("NOT probability units. Don't compare magnitudes directly against models with probability SHAP values.")
+    with open(out_dir / "NOTES.txt", "w", encoding="utf-8") as f:
+        f.write(
+            f"Vlerat SHAP për {dataset_name}/{model_name} shprehen në njësinë: {units}.\n"
+        )
+        f.write(
+            "Këto nuk janë njësi probabiliteti. Madhësia absolute tregon forcën "
+            "e ndikimit të variablës në rezultatin e modelit; shenja tregon "
+            "drejtimin e ndikimit. Vlerat SHAP nuk tregojnë marrëdhënie shkakësore.\n"
+        )
     print(f"  {model_name:15s} -> saved SHAP outputs to {out_dir}  (units: {units})")
 
 def main():

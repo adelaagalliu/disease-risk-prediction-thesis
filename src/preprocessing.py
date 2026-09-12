@@ -123,14 +123,13 @@ def get_feature_columns(df, target: str, drop_cols: list[str]) -> list[str]:
 def build_preprocessor(feature_cols: list[str], scale_continuous: bool) -> ColumnTransformer:
     """
     feature_cols: the actual columns present for this run
-    scale_continuous: True for Logistic Regression, False for tree models.
+    scale_continuous: whether continuous and ordinal predictors are standardized.
 
     Ordinal columns (age_range, education, income, general_health) are
     numeric but not on a 0/1 scale like the binary columns -- leaving them
     on "passthrough" next to unscaled continuous features is exactly what
     was starving lbfgs of convergence. They're scaled together with the
-    continuous columns; tree models (scale_continuous=False) still ignore
-    scaling entirely, since it doesn't affect them.
+    continuous columns for stable Logistic Regression optimization.
     """
     ordinal_feature = [c for c in ORDINAL_COLS if c in feature_cols]
     continuous_feature = [c for c in CONTINUOUS_COLS if c in feature_cols]

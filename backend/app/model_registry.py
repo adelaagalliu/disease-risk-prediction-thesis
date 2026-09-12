@@ -1,30 +1,28 @@
 from pathlib import Path
 import joblib
 
-MODEL_DIR = Path(
-    r"C:\Users\User\Documents\diploma\models"
-)
+MODEL_DIR = Path(__file__).resolve().parents[2] / "models"
 
 MODEL_CONFIG = {
     "diabetes": {
-        "artifact": "diabetes_catboost.joblib",
-        "model_name": "catboost",
-        "threshold": 0.63,
+        "artifact": "diabetes_logreg.joblib",
+        "model_name": "logreg",
+        "threshold": 0.21000000000000002,
     },
     "heart_disease": {
-        "artifact": "heart_disease_lightgbm.joblib",
-        "model_name": "lightgbm",
-        "threshold": 0.73,
+        "artifact": "heart_disease_logreg.joblib",
+        "model_name": "logreg",
+        "threshold": 0.17,
     },
     "hypertension": {
         "artifact": "hypertension_logreg.joblib",
         "model_name": "logreg",
-        "threshold": 0.55,
+        "threshold": 0.34,
     },
     "stroke": {
         "artifact": "stroke_logreg.joblib",
         "model_name": "logreg",
-        "threshold": 0.76,
+        "threshold": 0.19,
     },
 }
 

@@ -1,2 +1,2 @@
-SHAP values for hypertension/logreg are in units: log-odds (linear score)
-NOT probability units. Don't compare magnitudes directly against models with probability SHAP values.
+Vlerat SHAP për hypertension/logreg shprehen në njësinë: logaritmi i gjasave (rezultati linear).
+Këto nuk janë njësi probabiliteti. Madhësia absolute tregon forcën e ndikimit të variablës në rezultatin e modelit; shenja tregon drejtimin e ndikimit. Vlerat SHAP nuk tregojnë marrëdhënie shkakësore.

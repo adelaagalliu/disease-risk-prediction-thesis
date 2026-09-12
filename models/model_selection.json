@@ -1,25 +1,25 @@
 {
   "diabetes": {
-    "model": "catboost",
-    "cv_score": 0.46137332857435104,
+    "model": "logreg",
+    "cv_score": 0.4404415785636653,
     "criterion": "average_precision",
     "source": "grouped_training_cv"
   },
   "heart_disease": {
-    "model": "lightgbm",
-    "cv_score": 0.37235494657959833,
+    "model": "logreg",
+    "cv_score": 0.36732524144023065,
     "criterion": "average_precision",
     "source": "grouped_training_cv"
   },
   "hypertension": {
     "model": "logreg",
-    "cv_score": 0.9019513057608332,
+    "cv_score": 0.9009626610457341,
     "criterion": "average_precision",
     "source": "grouped_training_cv"
   },
   "stroke": {
     "model": "logreg",
-    "cv_score": 0.22874172346081176,
+    "cv_score": 0.22418000899225465,
     "criterion": "average_precision",
     "source": "grouped_training_cv"
   }

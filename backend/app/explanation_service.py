@@ -10,8 +10,6 @@ PROCESSED_DATA_DIR = PROJECT_DIR / "data" / "datasets_processed"
 BACKGROUND_SIZE = 100
 RANDOM_STATE = 44
 
-TREE_MODELS = {"catboost", "lightgbm", "random_forest", "xgboost"}
-
 FEATURE_LABELS = {
     "age_range": "Age group",
     "sex_binary": "Sex",
@@ -196,25 +194,10 @@ class ExplanationService:
         except Exception:
             feature_names = list(feature_cols)
 
-        if model_name in TREE_MODELS:
-            try:
-                explainer = shap.TreeExplainer(
-                    model,
-                    data=background,
-                    model_output="probability",
-                )
-                units = "probability"
-            except (NotImplementedError, ValueError):
-                explainer = shap.TreeExplainer(
-                    model,
-                    feature_perturbation="tree_path_dependent",
-                )
-                units = "raw_model_output"
-        elif model_name == "logreg":
-            explainer = shap.LinearExplainer(model, background)
-            units = "log_odds"
-        else:
+        if model_name != "logreg":
             raise ValueError(f"Unsupported model for SHAP: {model_name}")
+        explainer = shap.LinearExplainer(model, background)
+        units = "log_odds"
 
         cached = (explainer, preprocessor, feature_names, units)
         self._explainers[disease] = cached

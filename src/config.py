@@ -85,7 +85,7 @@ RANDOM_STATE = 44
 TEST_SIZE = 0.2
 VAL_SIZE = 0.1 
 
-MODEL_NAMES = ["logreg", "random_forest", "xgboost", "lightgbm", "catboost"]
+MODEL_NAMES = ["logreg"]
 
 SEARCH_N_ITER = 10
 SEARCH_CV_FOLDS = 3
