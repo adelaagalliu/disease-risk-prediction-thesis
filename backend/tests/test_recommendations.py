@@ -13,6 +13,7 @@ def brfss_data():
         "physical_activity": False,
         "education": "college_graduate",
         "income": "50000_to_74999",
+        "income_display_currency": "ALL",
         "high_bp": True,
         "high_chol": True,
         "chol_check": True,

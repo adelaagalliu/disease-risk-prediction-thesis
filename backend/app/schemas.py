@@ -20,6 +20,7 @@ Income = Literal[
     "50000_to_74999",
     "75000_or_more",
 ]
+IncomeDisplayCurrency = Literal["ALL", "EUR"]
 GeneralHealth = Literal["excellent", "very_good", "good", "fair", "poor"]
 SmokingStatus = Literal["never", "former", "current", "unknown"]
 
@@ -44,6 +45,7 @@ class BrfssRequest(PatientProfileRequest):
     physical_activity: bool
     education: Education
     income: Income
+    income_display_currency: IncomeDisplayCurrency = "ALL"
     high_bp: bool
     high_chol: bool
     chol_check: bool
@@ -72,19 +74,20 @@ class HypertensionRequest(PatientProfileRequest):
     cholesterol: float = Field(ge=80, le=700)
     glucose: float = Field(ge=30, le=700)
 
+    # Kontrollon lidhjet ndermjet vlerave mjekesore
     @model_validator(mode="after")
     def validate_relationships(self) -> "HypertensionRequest":
         if self.diastolic_bp >= self.systolic_bp:
-            raise ValueError("diastolic_bp must be lower than systolic_bp")
+            raise ValueError("Tensioni diastolik duhet të jete me i ulet se tensioni sistolik")
 
         if self.smoking_status == "current" and self.cigarettes_per_day <= 0:
             raise ValueError(
-                "current smokers must provide cigarettes_per_day greater than 0"
+                "Duhanpiresit aktual duhet te japin nje numer cigaresh me te madh se 0."
             )
 
         if self.smoking_status != "current" and self.cigarettes_per_day != 0:
             raise ValueError(
-                "cigarettes_per_day must be 0 for never or former smokers"
+                "Numri i cigareve duhet te jete 0 per personat qe nuk pine aktualisht duhan."
             )
 
         return self

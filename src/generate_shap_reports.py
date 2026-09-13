@@ -2,7 +2,6 @@ import numpy as np
 import pandas as pd
 import joblib
 import shap
-import re
 
 from config import (
     DATASETS, MODELS_DIR, MODEL_NAMES, RESULTS_DIR, RANDOM_STATE,
@@ -31,42 +30,9 @@ def build_explainer(model_name, model, background):
 
 def compute_shap_values(model_name, model, background, X_explain):
     explainer = build_explainer(model_name, model, background)
-    return explainer(X_explain), "logaritmi i gjasave (rezultati linear)"
-
-def translate_shap_plot_text(fig):
-    translations = {
-        "Feature value": "Vlera e variablës",
-        "High": "E lartë",
-        "Low": "E ulët",
-        "higher": "më lart",
-        "lower": "më poshtë",
-        "base value": "vlera bazë",
-    }
-    for item in fig.findobj():
-        if hasattr(item, "get_text") and hasattr(item, "set_text"):
-            current = item.get_text()
-            if current in translations:
-                item.set_text(translations[current])
-    for ax in fig.axes:
-        tick_labels = [item.get_text() for item in ax.get_yticklabels()]
-        translated_labels = []
-        changed = False
-        for label in tick_labels:
-            translated = translations.get(label, label)
-            translated = re.sub(
-                r"^(\d+) other features$", r"\1 variabla të tjera", translated
-            )
-            translated_labels.append(translated)
-            changed = changed or translated != label
-        if changed:
-            ax.set_yticks(ax.get_yticks(), labels=translated_labels)
+    return explainer(X_explain), "log-odds (linear score)"
 
 def extract_values_and_base(shap_values):
-    """
-    Normalizes across explainer output shapes: some return (n, features) for
-    a single-output model, others return (n, features, n_classes) for
-    binary classifiers. We always want the positive-class (index 1) slice.
-    """
     values = shap_values.values
     base_values = shap_values.base_values
     if values.ndim == 3:
@@ -107,18 +73,12 @@ def explain_one_model(dataset_name: str, model_name: str, out_root):
 
     if HAS_MPL:
         shap.summary_plot(values, X_explain, feature_names=feature_names, show=False)
-        fig = plt.gcf()
-        plt.gca().set_xlabel("Vlera SHAP (ndikimi në rezultatin e modelit)")
-        translate_shap_plot_text(fig)
         plt.tight_layout()
         plt.savefig(out_dir / "summary_beeswarm.png", dpi=150)
         plt.close()
 
         shap.summary_plot(values, X_explain, feature_names=feature_names,
                            plot_type="bar", show=False)
-        fig = plt.gcf()
-        plt.gca().set_xlabel("Ndikimi mesatar absolut në rezultatin e modelit")
-        translate_shap_plot_text(fig)
         plt.tight_layout()
         plt.savefig(out_dir / "summary_bar.png", dpi=150)
         plt.close()
@@ -132,9 +92,6 @@ def explain_one_model(dataset_name: str, model_name: str, out_root):
                 feature_names=feature_names,
             )
             shap.plots.waterfall(expl, show=False)
-            fig = plt.gcf()
-            plt.gca().set_xlabel("Rezultati në shkallën e logaritmit të gjasave")
-            translate_shap_plot_text(fig)
             plt.tight_layout()
             plt.savefig(out_dir / f"waterfall_example_{i}.png", dpi=150)
             plt.close()
@@ -142,25 +99,17 @@ def explain_one_model(dataset_name: str, model_name: str, out_root):
         print("    matplotlib not available: skipping plots, saving importance table only")
 
     mean_abs = np.abs(values).mean(axis=0)
-    importance_df = pd.DataFrame({
-        "variabla": feature_names,
-        "mesatarja_e_vleres_absolute_SHAP": mean_abs,
-    })
-    importance_df = importance_df.sort_values(
-        "mesatarja_e_vleres_absolute_SHAP", ascending=False
-    )
+    importance_df = pd.DataFrame({"feature": feature_names, "mean_abs_shap": mean_abs})
+    importance_df = importance_df.sort_values("mean_abs_shap", ascending=False)
     importance_df.to_csv(out_dir / "feature_importance.csv", index=False)
 
     with open(out_dir / "NOTES.txt", "w", encoding="utf-8") as f:
-        f.write(
-            f"Vlerat SHAP për {dataset_name}/{model_name} shprehen në njësinë: {units}.\n"
+        f.write(f"Vlerat SHAP për {dataset_name}/{model_name} jane ne njesine: {units}\n"
+    )
+    if units != "probability":
+        f.write("Keto nuk jane njesi probabiliteti. Mos i krahasoni drejtperdrejt me vlerat SHAP te modeleve te shprehura ne probabilitet."
         )
-        f.write(
-            "Këto nuk janë njësi probabiliteti. Madhësia absolute tregon forcën "
-            "e ndikimit të variablës në rezultatin e modelit; shenja tregon "
-            "drejtimin e ndikimit. Vlerat SHAP nuk tregojnë marrëdhënie shkakësore.\n"
-        )
-    print(f"  {model_name:15s} -> saved SHAP outputs to {out_dir}  (units: {units})")
+    print(f"  {model_name:15s} -> rezultatet SHAP u ruajten ne {out_dir}  (units: {units})")
 
 def main():
     for dataset_name in DATASETS:

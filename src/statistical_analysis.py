@@ -1,9 +1,3 @@
-"""Classical descriptive tests and inferential Logistic Regression tables.
-
-All analyses use the training split only. Duplicate profiles are represented
-once so repeated records are not treated as independent observations.
-"""
-
 import warnings
 
 import numpy as np
@@ -19,19 +13,10 @@ from scipy.stats import (
 from sklearn.linear_model import LogisticRegression
 
 from config import (
-    CONTINUOUS_COLS,
-    DATASETS,
-    GROUP_COL,
-    ORDINAL_COLS,
-    RESULTS_DIR,
-    load_split,
+    CONTINUOUS_COLS, DATASETS, GROUP_COL, ORDINAL_COLS, RESULTS_DIR, load_split,
 )
 from preprocessing import get_feature_columns
 
-
-# Derived interactions, scores, and deterministic cut-offs are useful for
-# prediction but are omitted from classical inference to keep odds ratios
-# interpretable and reduce multicollinearity.
 INFERENCE_EXCLUDE = {
     "age_bmi",
     "age_genhealth",
@@ -49,11 +34,10 @@ INFERENCE_EXCLUDE = {
     "pulse_pressure",
     "tachycardia",
     "uncontrolled_bp",
-    # Reference category for the complete set of work-type indicators.
     "work_type_private",
 }
 
-
+# formaton mesataren, devijimin standard, medianen dhe IQR
 def _fmt_continuous(values: pd.Series) -> tuple[str, str]:
     values = values.dropna().astype(float)
     if values.empty:
@@ -65,7 +49,7 @@ def _fmt_continuous(values: pd.Series) -> tuple[str, str]:
     )
     return mean_sd, median_iqr
 
-
+# krijon tabelen pershkruese dhe testet statistikore
 def descriptive_table(df: pd.DataFrame, target: str, features: list[str]) -> pd.DataFrame:
     rows = []
     continuous = set(CONTINUOUS_COLS)
@@ -76,15 +60,15 @@ def descriptive_table(df: pd.DataFrame, target: str, features: list[str]) -> pd.
             mean_0, median_0 = _fmt_continuous(group_0)
             mean_1, median_1 = _fmt_continuous(group_1)
             rows.append({
-                "variabla": feature,
-                "niveli": "e vazhdueshme",
-                "grupi_0_mesatarja_DS": mean_0,
-                "grupi_1_mesatarja_DS": mean_1,
-                "grupi_0_mediana_IQR": median_0,
-                "grupi_1_mediana_IQR": median_1,
-                "testi_statistikor": "Testi t i Welch-it; testi U i Mann–Whitney-t",
-                "vlera_p": float(ttest_ind(group_0, group_1, equal_var=False).pvalue),
-                "vlera_p_Mann_Whitney": float(
+                "feature": feature,
+                "level": "continuous",
+                "target_0_mean_sd": mean_0,
+                "target_1_mean_sd": mean_1,
+                "target_0_median_iqr": median_0,
+                "target_1_median_iqr": median_1,
+                "test": "Welch t-test; Mann-Whitney U",
+                "p_value": float(ttest_ind(group_0, group_1, equal_var=False).pvalue),
+                "mann_whitney_p_value": float(
                     mannwhitneyu(group_0, group_1, alternative="two-sided").pvalue
                 ),
             })
@@ -92,14 +76,14 @@ def descriptive_table(df: pd.DataFrame, target: str, features: list[str]) -> pd.
 
         table = pd.crosstab(df[feature], df[target])
         if table.shape[0] < 2 or table.shape[1] < 2:
-            test_name, p_value = "nuk zbatohet", np.nan
+            test_name, p_value = "not applicable", np.nan
         else:
             _, chi_p, _, expected = chi2_contingency(table)
             if table.shape == (2, 2) and (expected < 5).any():
                 _, p_value = fisher_exact(table.to_numpy())
-                test_name = "Testi ekzakt i Fisher-it"
+                test_name = "Fisher exact"
             else:
-                p_value, test_name = chi_p, "Testi khi-katror (χ²)"
+                p_value, test_name = chi_p, "chi-square"
 
         for level, counts in table.iterrows():
             n_0 = int(counts.get(0, 0))
@@ -107,17 +91,17 @@ def descriptive_table(df: pd.DataFrame, target: str, features: list[str]) -> pd.
             denom_0 = int((df[target] == 0).sum())
             denom_1 = int((df[target] == 1).sum())
             rows.append({
-                "variabla": feature,
-                "niveli": level,
-                "grupi_0_n_perqindje": f"{n_0} ({100 * n_0 / denom_0:.1f}%)",
-                "grupi_1_n_perqindje": f"{n_1} ({100 * n_1 / denom_1:.1f}%)",
-                "testi_statistikor": test_name,
-                "vlera_p": float(p_value),
-                "vlera_p_Mann_Whitney": np.nan,
+                "feature": feature,
+                "level": level,
+                "target_0_n_percent": f"{n_0} ({100 * n_0 / denom_0:.1f}%)",
+                "target_1_n_percent": f"{n_1} ({100 * n_1 / denom_1:.1f}%)",
+                "test": test_name,
+                "p_value": float(p_value),
+                "mann_whitney_p_value": np.nan,
             })
     return pd.DataFrame(rows)
 
-
+# pergatit matricen dhe standardizon vlerat numerike
 def _prepare_matrix(df: pd.DataFrame, features: list[str]) -> tuple[np.ndarray, list[str]]:
     matrix = df[features].astype(float).to_numpy(copy=True)
     names = []
@@ -127,12 +111,12 @@ def _prepare_matrix(df: pd.DataFrame, features: list[str]) -> tuple[np.ndarray, 
             std = matrix[:, index].std(ddof=0)
             if std > 0:
                 matrix[:, index] = (matrix[:, index] - matrix[:, index].mean()) / std
-            names.append(f"{feature} (për rritje me 1 DS)")
+            names.append(f"{feature} (per 1 SD)")
         else:
-            names.append(f"{feature} (për rritje me 1 njësi)")
+            names.append(f"{feature} (per 1 unit)")
     return matrix, names
 
-
+# llogarit koeficientet, odds ratio, intervalet e besimit (ci) dhe p-vlerat
 def _wald_table(X: np.ndarray, y: np.ndarray, names: list[str]) -> pd.DataFrame:
     model = LogisticRegression(penalty=None, solver="lbfgs", max_iter=5000)
     with warnings.catch_warnings():
@@ -155,15 +139,15 @@ def _wald_table(X: np.ndarray, y: np.ndarray, names: list[str]) -> pd.DataFrame:
     upper = coefficients + 1.96 * standard_errors
     safe_exp = lambda values: np.exp(np.clip(values, -700, 700))
     return pd.DataFrame({
-        "variabla": ["konstantja", *names],
-        "koeficienti": coefficients,
-        "raporti_i_gjasave_OR": safe_exp(coefficients),
-        "IK_95_kufiri_i_poshtem": safe_exp(lower),
-        "IK_95_kufiri_i_siperm": safe_exp(upper),
-        "vlera_p": 2 * norm.sf(np.abs(z_scores)),
+        "term": ["intercept", *names],
+        "coefficient": coefficients,
+        "odds_ratio": safe_exp(coefficients),
+        "ci_95_lower": safe_exp(lower),
+        "ci_95_upper": safe_exp(upper),
+        "p_value": 2 * norm.sf(np.abs(z_scores)),
     })
 
-
+# krijon tabelat e regresionit logjistik njevariabel dhe shumevariabel
 def logistic_tables(df: pd.DataFrame, target: str, features: list[str]):
     y = df[target].astype(int).to_numpy()
     univariable = []
@@ -171,27 +155,25 @@ def logistic_tables(df: pd.DataFrame, target: str, features: list[str]):
         X, names = _prepare_matrix(df, [feature])
         table = _wald_table(X, y, names)
         row = table.iloc[1].to_dict()
-        row["modeli"] = "njëvariabël"
+        row["model"] = "univariable"
         univariable.append(row)
 
     X, names = _prepare_matrix(df, features)
     multivariable = _wald_table(X, y, names)
-    multivariable.insert(0, "modeli", "shumëvariabël")
+    multivariable.insert(0, "model", "multivariable")
     return pd.DataFrame(univariable), multivariable
-
 
 def main():
     out_dir = RESULTS_DIR / "statistical_analysis"
     out_dir.mkdir(parents=True, exist_ok=True)
     notes = [
-        "Analizat përdorin vetëm të dhënat e trajnimit dhe një rresht për çdo profil të përsëritur.",
-        "Variablat e vazhdueshme paraqiten me mesatare (DS), medianë [diapazon ndërkuartilor, IQR], testin t të Welch-it dhe testin U të Mann–Whitney-t.",
-        "Variablat kategorike paraqiten me n (%), testin khi-katror ose testin ekzakt të Fisher-it kur frekuencat e pritshme janë të vogla.",
-        "Regresioni Logjistik inferencial është pa peshim dhe pa penalizim; ai është i ndarë nga modeli parashikues.",
-        "Për variablat e vazhdueshme dhe rendore, raporti i gjasave jepet për një rritje me një devijim standard.",
-        "Vlerat p nuk janë korrigjuar për krahasime të shumëfishta dhe lidhjet nuk duhet të interpretohen si shkakësore.",
+        "Analizat përdorin vetëm të dhënat e trajnimit dhe një rresht për çdo grup profilesh të përsëritura.",
+        "Variablat e vazhdueshme: mesatarja (SD), mediana [IQR], testi t i Welch dhe Mann-Whitney U.",
+        "Variablat kategorike: n (%), testi chi-square ose testi ekzakt i Fisher kur frekuencat e pritshme janë të vogla.",
+        "Regresioni logjistik inferencial është i papeshuar dhe pa penalizim; ai është i ndarë nga modeli parashikues.",
+        "Odds ratio për variablat e vazhdueshme dhe rendore raportohet për një rritje prej një devijimi standard.",
+        "P-vlerat janë të pakorrigjuara dhe lidhjet nuk duhet të interpretohen si efekte shkakësore.",
     ]
-
     for dataset_name, data_cfg in DATASETS.items():
         target = data_cfg["target"]
         df = load_split(dataset_name, "train")
@@ -213,12 +195,9 @@ def main():
         multivariable.to_csv(
             out_dir / f"{dataset_name}_multivariable_logistic.csv", index=False
         )
-        print(f"Saved statistical tables for {dataset_name} ({len(df)} profiles)")
+        print(f"U ruajten tabelat statistikore per {dataset_name} ({len(df)} profile)")
 
-    (out_dir / "METHODS_NOTES.txt").write_text(
-        "\n".join(notes) + "\n", encoding="utf-8"
-    )
-
+    (out_dir / "METHODS_NOTES.txt").write_text("\n".join(notes) + "\n")
 
 if __name__ == "__main__":
     main()

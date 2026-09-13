@@ -2,15 +2,11 @@ import numpy as np
 import pandas as pd
 
 MIN_SUBGROUP_N = 30 
-
 MISSING_VALUE_DATASETS = {"diabetes", "heart_disease", "hypertension", "stroke"}
-
 SMOKER_IMPUTE_DATASETS = {"diabetes", "heart_disease", "hypertension"}
- 
 SYSTOLIC_BP_BINS = [0, 120, 140, 160, 180, 1000]
 
 def _binary_mode(values):
-    """Return a deterministic 0/1 mode; ties resolve to 1."""
     return int(values.mean() >= 0.5)
  
 def drop_unimputable_rows(df, dataset_name):
@@ -19,19 +15,11 @@ def drop_unimputable_rows(df, dataset_name):
         df = df[df["sex_binary"].notna()].reset_index(drop=True)
         dropped = before - len(df)
         if dropped:
-            print(f"  dropped {dropped} row(s) with missing sex_binary "
-                  f"(gender='Other' has no BRFSS-comparable encoding)")
+            print( f"  u hoqen {dropped} rreshta me sex_binary qe mungon "
+                  f"(gender='Other' nuk ka kodim të krahasueshem me BRFSS)")
     return df
  
 def _fit_conditional(train_df, group_values, value_col, agg, min_n=MIN_SUBGROUP_N):
-    """
-    Fits `agg` (for example, a median or binary mode) of
-    train_df[value_col] within each
-    group of `group_values` (a Series aligned to train_df, e.g. an
-    age_range column or a systolic_bp band), falling back to the overall
-    train statistic for any group with fewer than `min_n` non-missing
-    training rows. Returns (per_group_dict, overall_value).
-    """
     observed = train_df[value_col].notna()
     overall = agg(train_df.loc[observed, value_col])
     stats = {}
@@ -41,17 +29,15 @@ def _fit_conditional(train_df, group_values, value_col, agg, min_n=MIN_SUBGROUP_
     return stats, overall
  
 def _apply_conditional(df, group_values, value_col, stats, overall):
-    """Fills df[value_col]'s NaNs using a per-group statistic fit on train."""
     fill = group_values.map(stats).astype(float)
     df[value_col] = df[value_col].fillna(fill)
-    df[value_col] = df[value_col].fillna(overall)  # safety net: group unseen in train
+    df[value_col] = df[value_col].fillna(overall)  # group unseen in train, for safety
     return df
  
  
 def fit_impute_stats(train_df, dataset_name):
-    """Compute every imputation statistic from the training split only."""
     if dataset_name not in MISSING_VALUE_DATASETS:
-        raise ValueError(f"No missing-value handling defined for dataset: {dataset_name}")
+        raise ValueError(f"Nuk eshte percaktuar si do trajtohen vlerat qe mungojne per datasetin: {dataset_name}")
 
     stats = {}
 
@@ -96,9 +82,8 @@ def fit_impute_stats(train_df, dataset_name):
     return stats
  
 def apply_impute(df, dataset_name, stats):
-    """Fill NaNs using statistics from fit_impute_stats() (train-only)."""
     if dataset_name not in MISSING_VALUE_DATASETS:
-        raise ValueError(f"No missing-value handling defined for dataset: {dataset_name}")
+        raise ValueError(f"Nuk eshte percaktuar si do trajtohen vlerat qe mungojne per datasetin: {dataset_name}")
 
     df = df.copy()
 

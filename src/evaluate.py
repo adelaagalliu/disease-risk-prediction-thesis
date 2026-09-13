@@ -24,42 +24,37 @@ from config import (
 
 DATASET_LABELS = {
     "diabetes": "Diabeti",
-    "heart_disease": "Sëmundja e zemrës",
+    "heart_disease": "Semundja e zemres",
     "hypertension": "Hipertensioni",
     "stroke": "Insulti cerebral",
 }
 MODEL_LABELS = {
     "logreg": "Regresioni Logjistik",
-    "prevalence_baseline": "Modeli bazë i prevalencës",
+    "prevalence_baseline": "Modeli baze i prevalences",
 }
 SPLIT_LABELS = {"val": "validim", "test": "test"}
 
-def _score_at_threshold(y_true, y_proba, threshold, metric):
-    y_pred = (y_proba >= threshold).astype(int)
-    if metric == "f1":
-        return f1_score(y_true, y_pred, zero_division=0)
-    if metric == "precision":
-        return precision_score(y_true, y_pred, zero_division=0)
-    if metric == "recall":
-        return recall_score(y_true, y_pred, zero_division=0)
-    raise ValueError(f"Unsupported threshold metric: {metric}")
-
-def find_best_threshold(y_true, y_proba, metric=THRESHOLD_METRIC, n_steps=99):
+# gjen threshold qe maksimizon metriken e zgjedhur
+def find_best_threshold(y_true, y_proba, metric=THRESHOLD_METRIC, n_steps=99,):
+    metric_functions = {
+        "f1": f1_score,
+        "precision": precision_score,
+        "recall": recall_score,
+    }
+    if metric not in metric_functions:
+        raise ValueError(f"Metrika e pragut nuk mbeshtetet: {metric}")
+    metric_fn = metric_functions[metric]
     thresholds = np.linspace(0.01, 0.99, n_steps)
-    scores = [_score_at_threshold(y_true, y_proba, t, metric) for t in thresholds]
+    scores = [
+        metric_fn(y_true, (y_proba >= threshold).astype(int), zero_division=0,)
+        for threshold in thresholds
+    ]
     best_idx = int(np.argmax(scores))
     return float(thresholds[best_idx])
 
+# llogarit confidence interval me bootstrap sipas grupeve
 def bootstrap_ci(y_true, y_proba, metric_fn, groups=None, n_boot=N_BOOTSTRAP,
                  alpha=BOOTSTRAP_ALPHA, seed=42) -> dict:
-    """
-    Resamples whole duplicate-profile groups with replacement, recomputes the
-    metric, and returns the mean plus a (1-alpha) percentile CI. If groups is
-    omitted, each row is treated as its own group.
-    Use this instead of comparing single point estimates across models --
-    with these dataset sizes, ROC-AUC/PR-AUC differences of ~0.01 between
-    models are usually well within noise, and the CI is what shows that.
-    """
     rng = np.random.RandomState(seed)
     y_true = np.asarray(y_true)
     y_proba = np.asarray(y_proba)
@@ -67,13 +62,10 @@ def bootstrap_ci(y_true, y_proba, metric_fn, groups=None, n_boot=N_BOOTSTRAP,
         groups = np.arange(len(y_true))
     groups = np.asarray(groups)
     if len(groups) != len(y_true):
-        raise ValueError("groups must have the same length as y_true")
+        raise ValueError("grupet duhet te kene te njejten gjatesi me y_true (vlerat reale)")
     unique_groups, group_index = np.unique(groups, return_inverse=True)
     group_probabilities = np.full(len(unique_groups), 1 / len(unique_groups))
 
-    # Scores never change across bootstrap samples, so sort and identify tied
-    # score groups once. This is equivalent to calling sklearn with frequency
-    # weights, but avoids repeating an expensive sort 1000 times.
     descending = metric_fn is average_precision_score
     order = np.argsort(y_proba, kind="mergesort")
     if descending:
@@ -82,6 +74,7 @@ def bootstrap_ci(y_true, y_proba, metric_fn, groups=None, n_boot=N_BOOTSTRAP,
     sorted_target = y_true[order]
     tie_starts = np.r_[0, np.flatnonzero(np.diff(sorted_scores)) + 1]
 
+    # llogarit metriken duke perdorur peshat e sample.
     def weighted_score(sample_weight):
         weight = sample_weight[order]
         positive = np.add.reduceat(weight * sorted_target, tie_starts)
@@ -112,11 +105,11 @@ def bootstrap_ci(y_true, y_proba, metric_fn, groups=None, n_boot=N_BOOTSTRAP,
         group_counts = rng.multinomial(len(unique_groups), group_probabilities)
         sample_weight = group_counts[group_index]
         if not sample_weight[y_true == 0].sum() or not sample_weight[y_true == 1].sum():
-            continue  # skip degenerate resamples with only one class
+            continue  # skip resamples qe permbajne vetem nje klase
         scores.append(weighted_score(sample_weight))
     scores = np.array(scores)
     if not len(scores):
-        raise ValueError("No valid bootstrap samples contained both target classes")
+        raise ValueError("Asnje sample bootstrap nuk i permbante te dy klasat target")
     return {
         "mean": float(scores.mean()),
         "lower": float(np.percentile(scores, 100 * alpha / 2)),
@@ -125,12 +118,8 @@ def bootstrap_ci(y_true, y_proba, metric_fn, groups=None, n_boot=N_BOOTSTRAP,
         "n_groups": int(len(unique_groups)),
     }
 
+# llogarit rezultatin Brier dhe pikat e kurbes se kalibrimit
 def compute_calibration(y_true, y_proba, n_bins=CALIBRATION_BINS) -> dict:
-    """
-    Brier score (lower is better; combines calibration + discrimination)
-    plus reliability-curve points. Threshold-independent -- computed once
-    per split, not per threshold.
-    """
     brier = brier_score_loss(y_true, y_proba)
     prob_true, prob_pred = calibration_curve(y_true, y_proba, n_bins=n_bins, strategy="quantile")
     return {
@@ -165,6 +154,7 @@ def save_calibration_plot(y_true, y_proba, dataset_name, model_name, split_name,
     plt.close(fig)
     return str(out_path)
 
+# llogarit metrikat e klasifikimit per threshold e dhene
 def compute_metrics(y_true, y_proba, threshold, split_name) -> dict:
     y_pred = (y_proba >= threshold).astype(int)
     tn, fp, fn, tp = confusion_matrix(y_true, y_pred, labels=[0, 1]).ravel()
@@ -183,18 +173,9 @@ def compute_metrics(y_true, y_proba, threshold, split_name) -> dict:
         "pr_auc": average_precision_score(y_true, y_proba),
         "confusion_matrix": {"tn": int(tn), "fp": int(fp), "fn": int(fn), "tp": int(tp)},
     }
-
+# vlereson modelin me threshold standard dhe threshold e optimizuar.
 def evaluate_model(pipeline, feature_cols, target, splits: dict,
                     dataset_name: str = None, model_name: str = None) -> dict:
-    """
-    splits: {"val": df, "test": df}.
-    Reports metrics at the default 0.50 threshold AND at a threshold tuned
-    on val, then reused unchanged for test (THRESHOLD_METRIC in config.py).
-    Also reports, per split:
-    - bootstrap 95% CIs for ROC-AUC and PR-AUC (threshold-independent)
-    - calibration (Brier score + reliability curve points)
-    A calibration reliability plot is saved to disk for the test split only.
-    """
     val_df = splits["val"]
     val_proba = pipeline.predict_proba(val_df[feature_cols])[:, 1]
     best_threshold = find_best_threshold(val_df[target], val_proba)
@@ -217,9 +198,8 @@ def evaluate_model(pipeline, feature_cols, target, splits: dict,
 
     return results
 
-def evaluate_prevalence_baseline(train_df, target, splits: dict,
-                                 dataset_name: str = None) -> dict:
-    """Evaluate a constant probability equal to training-set prevalence."""
+# vlereson modelin baze qe perdor prevalencen e trajnimit
+def evaluate_prevalence_baseline(train_df, target, splits: dict, dataset_name: str = None) -> dict:
     prevalence = float(train_df[target].mean())
     results = {}
     for split_name, df in splits.items():
@@ -227,7 +207,7 @@ def evaluate_prevalence_baseline(train_df, target, splits: dict,
         y_proba = np.full(len(df), prevalence)
         groups = df[GROUP_COL] if GROUP_COL in df else None
         results[split_name] = {
-            "prediction_rule": "probabilitet konstant, i barabartë me prevalencën në grupin e trajnimit",
+            "prediction_rule": "probabilitet konstant, i barabarte me prevalencen ne grupin e trajnimit",
             "training_prevalence": prevalence,
             "default_threshold": compute_metrics(y_true, y_proba, 0.5, split_name),
             "roc_auc_ci": bootstrap_ci(y_true, y_proba, roc_auc_score, groups=groups),
@@ -254,7 +234,8 @@ def main():
 
     for name, data_cfg in DATASETS.items():
         target = data_cfg["target"]
-        print(f"\nEvaluating Logistic Regression and prevalence baseline for: {name}")
+        print("\nPo vleresohen regresioni logjistik dhe modeli bazë i prevalences per: {dataset_label}"
+        )
         selection = selections[name]
         selected_name = "logreg"
         if selection["model"] != selected_name:

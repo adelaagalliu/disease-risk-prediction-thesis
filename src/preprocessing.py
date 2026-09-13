@@ -6,7 +6,6 @@ from config import (
     CONTINUOUS_COLS, GROUP_COL, ORDINAL_COLS, STROKE_WORK_TYPE_CATEGORIES,
 )
 
-
 def add_engineered_features(df):
     df = df.copy()
 
@@ -87,9 +86,6 @@ def add_engineered_features(df):
         dummies.index = df.index
         df = pd.concat([df, dummies], axis=1)
 
-    # Stroke uses its full smoking-history variable instead of the binary
-    # smoker feature used by the other datasets. Never-smoked is the reference
-    # group; current, former, and unknown are explicit indicator columns.
     if has("smoking_status"):
         df["smoking_current"] = (
             df["smoking_status"] == "smokes"
@@ -120,31 +116,20 @@ def get_feature_columns(df, target: str, drop_cols: list[str]) -> list[str]:
     exclude = set(drop_cols) | {target, GROUP_COL}
     return [c for c in df.columns if c not in exclude]
 
-def build_preprocessor(feature_cols: list[str], scale_continuous: bool) -> ColumnTransformer:
-    """
-    feature_cols: the actual columns present for this run
-    scale_continuous: whether continuous and ordinal predictors are standardized.
-
-    Ordinal columns (age_range, education, income, general_health) are
-    numeric but not on a 0/1 scale like the binary columns -- leaving them
-    on "passthrough" next to unscaled continuous features is exactly what
-    was starving lbfgs of convergence. They're scaled together with the
-    continuous columns for stable Logistic Regression optimization.
-    """
-    ordinal_feature = [c for c in ORDINAL_COLS if c in feature_cols]
-    continuous_feature = [c for c in CONTINUOUS_COLS if c in feature_cols]
-    scale_feature = continuous_feature + ordinal_feature
-    passthrough_feature = [
+def build_preprocessor(feature_cols: list[str]) -> ColumnTransformer:
+    scale_features = [
+        c for c in CONTINUOUS_COLS + ORDINAL_COLS
+        if c in feature_cols
+    ]
+    passthrough_features = [
         c for c in feature_cols
-        if c not in scale_feature
+        if c not in scale_features
     ]
 
-    if scale_continuous and scale_feature:
-        transformers = [
-            ("scaled", StandardScaler(), scale_feature),
-            ("passthrough", "passthrough", passthrough_feature),
-        ]
-    else:
-        transformers = [("passthrough", "passthrough", feature_cols)]
-
-    return ColumnTransformer(transformers, remainder="drop")
+    return ColumnTransformer(
+        transformers=[
+            ("scaled", StandardScaler(), scale_features),
+            ("passthrough", "passthrough", passthrough_features),
+        ],
+        remainder="drop",
+    )

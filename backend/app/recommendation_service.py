@@ -14,7 +14,15 @@ GENERAL_HEALTH_IMPROVEMENT = {
     "good": "very_good",
     "very_good": "excellent",
 }
+GENERAL_HEALTH_LABELS = {
+    "poor": "dobët",
+    "fair": "mesatar",
+    "good": "mirë",
+    "very_good": "shumë mirë",
+    "excellent": "shkëlqyeshëm",
+}
 
+# perfaqeson nje skenar/ndryshim te mundshem te profilit
 @dataclass(frozen=True)
 class Candidate:
     action: str
@@ -77,7 +85,7 @@ def _candidate_interventions(disease: str, request: Any) -> list[Candidate]:
             "actionable",
             {"bmi", "bmi_obese", "age_bmi", "glucose_bmi", "metabolic_risk_score"},
             {"weight_kg": weight_target},
-            f"With a modeled weight change from {request.weight_kg:g} kg to {weight_target:g} kg",
+            f"Me një ndryshim të modeluar të peshës nga {request.weight_kg:g} kg në {weight_target:g} kg",
             {"weight_kg": "kg"},
         )
 
@@ -90,7 +98,7 @@ def _candidate_interventions(disease: str, request: Any) -> list[Candidate]:
             "actionable",
             {"smoker", "heavy_smoker", "cigs_per_day", "smoking_current", "lifestyle_score"},
             updates,
-            "If you stopped smoking",
+            "Nëse do të ndalonit pirjen e duhanit",
         )
 
         if disease == "hypertension" and request.cigarettes_per_day >= 5:
@@ -100,31 +108,35 @@ def _candidate_interventions(disease: str, request: Any) -> list[Candidate]:
                 "actionable",
                 {"cigs_per_day", "heavy_smoker"},
                 {"cigarettes_per_day": reduced_cigarettes},
-                ("With modeled cigarette use reduced from "
-                 f"{request.cigarettes_per_day:g} to {reduced_cigarettes:g} per day"),
-                {"cigarettes_per_day": "cigarettes/day"},
+                (f"Me uljen e modeluar të cigareve nga {request.cigarettes_per_day:g} në {reduced_cigarettes:g} në ditë"),
+                {"cigarettes_per_day": "cigare/ditë"},
             )
     
     if disease in {"diabetes", "heart_disease"}:
         boolean_rules = (
             ("manage_blood_pressure", "health_management", "high_bp", False,
-             {"high_bp", "bp_chol_both", "metabolic_risk_score"},
-             "If the high-blood-pressure indicator changed to no"),
+                {"high_bp", "bp_chol_both", "metabolic_risk_score"},
+                "Nëse treguesi i tensionit të lartë do të ndryshonte në jo",),
             ("manage_cholesterol", "health_management", "high_chol", False,
-             {"high_chol", "bp_chol_both", "metabolic_risk_score"},
-             "If the high-cholesterol indicator changed to no"),
+                {"high_chol", "bp_chol_both", "metabolic_risk_score"},
+                "Nëse treguesi i kolesterolit të lartë do të ndryshonte në jo",
+            ),
             ("reduce_heavy_alcohol", "actionable", "heavy_alcohol", False,
-             {"heavy_alcohol", "lifestyle_score"},
-             "If heavy alcohol consumption were reduced"),
+                {"heavy_alcohol", "lifestyle_score"},
+                "Nëse do të ulej konsumimi i lartë i alkoolit",
+            ),
             ("increase_physical_activity", "actionable", "physical_activity", True,
-             {"physical_activity", "lifestyle_score"},
-             "If you became regularly physically active"),
+                {"physical_activity", "lifestyle_score"},
+                "Nëse do të kryenit rregullisht aktivitet fizik",
+            ),
             ("eat_fruit_regularly", "actionable", "fruits", True,
-             {"fruits", "lifestyle_score"},
-             "If you regularly ate fruit"),
+                {"fruits", "lifestyle_score"},
+                "Nëse do të konsumonit rregullisht fruta",
+            ),
             ("eat_vegetables_regularly", "actionable", "veggies", True,
-             {"veggies", "lifestyle_score"},
-             "If you regularly ate vegetables"),
+                {"veggies", "lifestyle_score"},
+                "Nëse do të konsumonit rregullisht perime",
+            ),
         )
         for action, kind, field, target, triggers, wording in boolean_rules:
             if getattr(request, field) != target:
@@ -133,38 +145,35 @@ def _candidate_interventions(disease: str, request: Any) -> list[Candidate]:
         improved_health = GENERAL_HEALTH_IMPROVEMENT.get(request.general_health)
         if improved_health:
             add(
-                "improved_general_health",
-                "contextual",
+                "improved_general_health", "contextual",
                 {"general_health", "age_genhealth", "general_health_diffwalk"},
                 {"general_health": improved_health},
-                f"If your reported general health improved from {request.general_health.replace('_', ' ')} to {improved_health.replace('_', ' ')}",
+                (f"Nëse shëndeti i përgjithshëm i raportuar do të ""përmirësohej nga {current_label} në {improved_label}"),
             )
 
         for field, feature, label in (
-            ("mental_health_days", "mental_health", "poor mental-health"),
-            ("physical_health_days", "physical_health", "poor physical-health"),
+            ("mental_health_days", "mental_health", "shëndet të dobët mendor"),
+            ("physical_health_days", "physical_health", "shëndet të dobët fizik"),
         ):
             current = getattr(request, field)
             target = _reduced_health_days(current)
             if target is not None:
                 reduction = current - target
                 add(
-                    f"fewer_{field}",
-                    "contextual",
+                    f"fewer_{field}", "contextual",
                     {feature, "poor_health_days"},
                     {field: target},
-                    f"With {reduction} fewer {label} days per month",
-                    {field: "days/month"},
+                    f"Me {reduction} ditë më pak me {label} në muaj",
+                    {field: "ditë/muaj"},
                 )
                 
     if disease in {"hypertension", "stroke"} and request.glucose >= 126:
         target_glucose = max(110.0, request.glucose - 20.0)
         add(
-            "manage_glucose",
-            "health_management",
+            "manage_glucose", "health_management",
             {"glucose", "hyperglycemia", "glucose_bmi", "age_glucose"},
             {"glucose": target_glucose},
-            "With a modeled reduction in measured glucose",
+            "Me një ulje të modeluar të glukozës së matur",
             {"glucose": "mg/dL"},
             )
 
@@ -194,7 +203,7 @@ def _candidate_interventions(disease: str, request: Any) -> list[Candidate]:
                     "uncontrolled_bp",
                 },
                 blood_pressure_updates,
-                "With a modeled reduction in measured blood pressure",
+                "Me një ulje të modeluar të tensionit të matur",
                 {
                     "systolic_bp": "mmHg",
                     "diastolic_bp": "mmHg",
@@ -204,32 +213,29 @@ def _candidate_interventions(disease: str, request: Any) -> list[Candidate]:
         if request.cholesterol > 200:
             target_cholesterol = max(200.0, request.cholesterol - 20.0)
             add(
-                "manage_cholesterol",
-                "health_management",
+                "manage_cholesterol", "health_management",
                 {"cholesterol", "high_chol"},
                 {"cholesterol": target_cholesterol},
-                "With a modeled reduction in measured cholesterol",
+                "Me një ulje të modeluar të kolesterolit të matur",
                 {"cholesterol": "mg/dL"},
             )
 
         if request.heart_rate > 100:
             target_heart_rate = max(90.0, request.heart_rate - 10.0)
             add(
-                "evaluate_high_heart_rate",
-                "contextual",
+                "evaluate_high_heart_rate", "contextual",
                 {"heart_rate", "tachycardia"},
                 {"heart_rate": target_heart_rate},
-                "With a modeled lower heart-rate measurement",
-                {"heart_rate": "bpm"},
+                "Me një matje më të ulët të ritmit të zemrës",
+                {"heart_rate": "rrahje/minutë"},
             )
 
     if disease == "stroke" and request.hypertension:
         add(
-            "manage_hypertension",
-            "health_management",
+            "manage_hypertension", "health_management",
             {"hypertension"},
             {"hypertension": False},
-            "If the hypertension indicator changed to no",
+            "Nëse treguesi i hipertensionit do të ndryshonte në jo",
         )
 
     return candidates
@@ -272,8 +278,8 @@ def create_recommendations(
                 "contributing_features": contributing,
                 "changes": changes,
                 "message": (
-                    f"{candidate.message_prefix}, the model estimate would decrease "
-                    f"from {original_probability * 100:.1f}% to {new_probability * 100:.1f}%."
+                    f"{candidate.message_prefix}, vlerësimi i modelit do të ulej nga "
+                    f"{original_probability * 100:.1f}% në {new_probability * 100:.1f}%."
                 ),
                 "new_probability": round(new_probability, 6),
                 "reduction_percentage_points": round(reduction * 100, 2),

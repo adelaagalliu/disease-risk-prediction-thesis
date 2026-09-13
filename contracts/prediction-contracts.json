@@ -302,6 +302,17 @@
             "50000_to_74999": 7,
             "75000_or_more": 8
           }
+          
+        },
+        "income_display_currency": {
+          "required": false,
+          "type": "category",
+          "allowed_values": [
+            "ALL",
+            "EUR"
+          ],
+          "default": "ALL",
+          "description": "Monedha me te cilen shfaqet kategoria e te ardhurave"
         },
         "high_bp": {
           "required": true,
@@ -552,6 +563,16 @@
             "50000_to_74999": 7,
             "75000_or_more": 8
           }
+        },
+        "income_display_currency": {
+          "required": false,
+          "type": "category",
+          "allowed_values": [
+            "ALL",
+            "EUR"
+          ],
+          "default": "ALL",
+          "description": "Monedha me te cilen shfaqet kategoria e te ardhurave"
         },
         "high_bp": {
           "required": true,
