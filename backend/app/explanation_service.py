@@ -61,6 +61,29 @@ FEATURE_LABELS = {
     "hyperglycemia": "High-glucose indicator",
 }
 
+INCOME_LABELS = {
+    "ALL": {
+        "less_than_10000": "Nen 800 000 leke",
+        "10000_to_14999": "800 000–1 200 000 leke",
+        "15000_to_19999": "1 200 000–1 600 000 leke",
+        "20000_to_24999": "1 600 000–2 000 000 leke",
+        "25000_to_34999": "2 000 000–2 800 000 leke",
+        "35000_to_49999": "2 800 000–4 000 000 leke",
+        "50000_to_74999": "4 000 000–6 000 000 leke",
+        "75000_or_more": "6 000 000 leke ose me shume",
+    },
+    "EUR": {
+        "less_than_10000": "Nen 8 600 euro",
+        "10000_to_14999": "8 600–12 900 euro",
+        "15000_to_19999": "12 900–17 200 euro",
+        "20000_to_24999": "17 200–21 600 euro",
+        "25000_to_34999": "21 600–30 200 euro",
+        "35000_to_49999": "30 200–43 100 euro",
+        "50000_to_74999": "43 100–64 700 euro",
+        "75000_or_more": "64 700 euro ose me shume",
+    },
+}
+
 LIFESTYLE_MODIFIABLE_FEATURES = {
     "bmi",
     "bmi_obese",
@@ -120,6 +143,9 @@ def convert_numpy_value(value: Any) -> Any:
 def display_feature_value(feature: str, request: Any, value: Any) -> Any:
     """Return a user-facing value instead of an encoded/interaction number."""
     bmi = round(request.weight_kg / ((request.height_cm / 100) ** 2), 2)
+    if feature == "income":
+        currency = getattr(request, "income_display_currency", "ALL")
+        return INCOME_LABELS[currency][request.income]
     direct_values = {
         "age_range": f"{request.age} years",
         "sex_binary": request.sex,

@@ -20,6 +20,7 @@ Income = Literal[
     "50000_to_74999",
     "75000_or_more",
 ]
+IncomeDisplayCurrency = Literal["ALL", "EUR"]
 GeneralHealth = Literal["excellent", "very_good", "good", "fair", "poor"]
 SmokingStatus = Literal["never", "former", "current", "unknown"]
 
@@ -44,6 +45,7 @@ class BrfssRequest(PatientProfileRequest):
     physical_activity: bool
     education: Education
     income: Income
+    income_display_currency: IncomeDisplayCurrency = "ALL"
     high_bp: bool
     high_chol: bool
     chol_check: bool
