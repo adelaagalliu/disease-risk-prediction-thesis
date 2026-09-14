@@ -92,3 +92,11 @@ def test_stroke():
         "manage_hypertension",
         "manage_glucose",
     }
+
+def test_general_health_scenario_has_rendered_labels():
+    request = DiabetesRequest(heart_disease=False, **brfss_data())
+    scenario = next(item for item in _candidate_interventions("diabetes", request) if item.action == "improved_general_health")
+    assert "{current_label}" not in scenario.message_prefix
+    assert "{improved_label}" not in scenario.message_prefix
+    assert "mesatar" in scenario.message_prefix
+    assert "mirë" in scenario.message_prefix
