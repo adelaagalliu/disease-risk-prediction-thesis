@@ -312,17 +312,17 @@
             "EUR"
           ],
           "default": "ALL",
-          "description": "Monedha me te cilen shfaqet kategoria e te ardhurave"
+          "description": "Monedha në të cilën shfaqet kategoria e të ardhurave"
         },
         "high_bp": {
           "required": true,
           "type": "boolean",
-          "description": "Previous high-blood-pressure diagnosis"
+          "description": "Diagnozë e mëparshme e hipertensionit arterial"
         },
         "high_chol": {
           "required": true,
           "type": "boolean",
-          "description": "Previous high-cholesterol diagnosis"
+          "description": "Diagnozë e mëparshme e kolesterolit të lartë"
         },
         "chol_check": {
           "required": true,
@@ -403,9 +403,11 @@
         "top_factors": [],
         "recommendations": [],
         "explanation_units": "probability",
-        "explanation_note": "SHAP values describe model influence relative to a baseline, not causal effects.",
+        "explanation_note": "Vlerat SHAP tregojnë ndikimin e veçorive në rezultatin e modelit krahasuar me vlerën bazë; ato nuk përfaqësojnë marrëdhënie shkak-pasojë.",
         "warnings": [],
-        "disclaimer": "Research estimate, not a medical diagnosis."
+        "disclaimer": "Ky është një vlerësim për qëllime kërkimore dhe nuk përbën diagnozë mjekësore.",
+        "prediction_id": "00000000-0000-0000-0000-000000000001",
+        "created_at": "2026-09-03T10:00:00Z"
       },
       "model_features": [
         "heart_disease",
@@ -572,17 +574,17 @@
             "EUR"
           ],
           "default": "ALL",
-          "description": "Monedha me te cilen shfaqet kategoria e te ardhurave"
+          "description": "Monedha në të cilën shfaqet kategoria e të ardhurave"
         },
         "high_bp": {
           "required": true,
           "type": "boolean",
-          "description": "Previous high-blood-pressure diagnosis"
+          "description": "Diagnozë e mëparshme e hipertensionit arterial"
         },
         "high_chol": {
           "required": true,
           "type": "boolean",
-          "description": "Previous high-cholesterol diagnosis"
+          "description": "Diagnozë e mëparshme e kolesterolit të lartë"
         },
         "chol_check": {
           "required": true,
@@ -663,9 +665,11 @@
         "top_factors": [],
         "recommendations": [],
         "explanation_units": "probability",
-        "explanation_note": "SHAP values describe model influence relative to a baseline, not causal effects.",
+        "explanation_note": "Vlerat SHAP tregojnë ndikimin e veçorive në rezultatin e modelit krahasuar me vlerën bazë; ato nuk përfaqësojnë marrëdhënie shkak-pasojë.",
         "warnings": [],
-        "disclaimer": "Research estimate, not a medical diagnosis."
+        "disclaimer": "Ky është një vlerësim për qëllime kërkimore dhe nuk përbën diagnozë mjekësore.",
+        "prediction_id": "00000000-0000-0000-0000-000000000002",
+        "created_at": "2026-09-03T10:05:00Z"
       },
       "model_features": [
         "diabetes",
@@ -861,11 +865,11 @@
         "top_factors": [],
         "recommendations": [],
         "explanation_units": "log_odds",
-        "explanation_note": "SHAP values describe model influence relative to a baseline, not causal effects.",
-        "warnings": [
-          "This output estimates a prevalent hypertension pattern, not future hypertension risk."
-        ],
-        "disclaimer": "Research estimate, not a medical diagnosis."
+        "explanation_note": "Vlerat SHAP tregojnë ndikimin e veçorive në rezultatin e modelit krahasuar me vlerën bazë; ato nuk përfaqësojnë marrëdhënie shkak-pasojë.",
+        "warnings": [],
+        "disclaimer": "Ky është një vlerësim për qëllime kërkimore dhe nuk përbën diagnozë mjekësore.",
+        "prediction_id": "00000000-0000-0000-0000-000000000003",
+        "created_at": "2026-09-03T10:10:00Z"
       },
       "model_features": [
         "diabetes",
@@ -1049,9 +1053,11 @@
         "top_factors": [],
         "recommendations": [],
         "explanation_units": "log_odds",
-        "explanation_note": "SHAP values describe model influence relative to a baseline, not causal effects.",
+        "explanation_note": "Vlerat SHAP tregojnë ndikimin e veçorive në rezultatin e modelit krahasuar me vlerën bazë; ato nuk përfaqësojnë marrëdhënie shkak-pasojë.",
         "warnings": [],
-        "disclaimer": "Research estimate, not a medical diagnosis."
+        "disclaimer": "Ky është një vlerësim për qëllime kërkimore dhe nuk përbën diagnozë mjekësore.",
+        "prediction_id": "00000000-0000-0000-0000-000000000004",
+        "created_at": "2026-09-03T10:15:00Z"
       },
       "model_features": [
         "heart_disease",
@@ -1107,7 +1113,9 @@
       "explanation_units",
       "explanation_note",
       "warnings",
-      "disclaimer"
+      "disclaimer",
+      "prediction_id",
+      "created_at"
     ],
     "properties": {
       "contract_version": {
@@ -1116,8 +1124,11 @@
       },
       "prediction_id": {
         "type": "string",
-        "format": "uuid",
-        "required_after_persistence_is_implemented": true
+        "format": "uuid"
+      },
+      "created_at": {
+        "type": "string",
+        "format": "date-time"
       },
       "disease": {
         "type": "string",
@@ -1176,7 +1187,7 @@
               "type": "string"
             },
             "value": {
-              "description": "A user-facing rendering of the request value or source values; encoded interaction products are not exposed"
+              "description": "Vlera e kërkesës ose vlerat burimore paraqiten në një formë të kuptueshme për përdoruesin; produktet e koduara të ndërveprimeve nuk shfaqen."
             },
             "direction": {
               "type": "string",
@@ -1198,7 +1209,7 @@
       "recommendations": {
         "type": "array",
         "maxItems": 5,
-        "description": "The highest-impact applicable counterfactuals drawn from the ten largest SHAP contributors. Scenarios that do not lower the model estimate by at least 0.5 percentage points are omitted.",
+        "description": "Skenarët alternativë të zbatueshëm me ndikimin më të madh, të nxjerrë nga dhjetë kontribuesit kryesorë sipas SHAP. Nuk përfshihen skenarët që nuk e ulin vlerësimin e modelit me të paktën 0,5 pikë përqindjeje.",
         "items": {
           "type": "object",
           "additional_properties": false,
