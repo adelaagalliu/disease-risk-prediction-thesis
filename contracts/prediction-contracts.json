@@ -169,6 +169,8 @@
           "accuracy",
           "precision",
           "recall",
+          "sensitivity",
+          "specificity",
           "f1",
           "confusion_matrix"
         ],
@@ -177,7 +179,8 @@
           "average_precision"
         ],
         "uncertainty": "95% percentile confidence intervals from 1000 group-bootstrap resamples",
-        "calibration": "Brier score and 10-bin quantile reliability curve"
+        "calibration": "Brier score and 10-bin quantile reliability curve",
+        "predictive_baseline": "constant probability equal to training prevalence; majority class at threshold 0.50"
       },
       "explainability": {
         "method": "SHAP",
@@ -410,7 +413,9 @@
         "explanation_units": "probability",
         "explanation_note": "SHAP values describe model influence relative to a baseline, not causal effects.",
         "warnings": [],
-        "disclaimer": "Research estimate, not a medical diagnosis."
+        "disclaimer": "Research estimate, not a medical diagnosis.",
+        "prediction_id": "00000000-0000-0000-0000-000000000001",
+        "created_at": "2026-09-03T10:00:00Z"
       },
       "model_features": [
         "heart_disease",
@@ -674,7 +679,9 @@
         "explanation_units": "probability",
         "explanation_note": "SHAP values describe model influence relative to a baseline, not causal effects.",
         "warnings": [],
-        "disclaimer": "Research estimate, not a medical diagnosis."
+        "disclaimer": "Research estimate, not a medical diagnosis.",
+        "prediction_id": "00000000-0000-0000-0000-000000000002",
+        "created_at": "2026-09-03T10:05:00Z"
       },
       "model_features": [
         "diabetes",
@@ -875,10 +882,10 @@
         "recommendations": [],
         "explanation_units": "log_odds",
         "explanation_note": "SHAP values describe model influence relative to a baseline, not causal effects.",
-        "warnings": [
-          "This output estimates a prevalent hypertension pattern, not future hypertension risk."
-        ],
-        "disclaimer": "Research estimate, not a medical diagnosis."
+        "warnings": [],
+        "disclaimer": "Research estimate, not a medical diagnosis.",
+        "prediction_id": "00000000-0000-0000-0000-000000000003",
+        "created_at": "2026-09-03T10:10:00Z"
       },
       "model_features": [
         "diabetes",
@@ -1068,7 +1075,9 @@
         "explanation_units": "log_odds",
         "explanation_note": "SHAP values describe model influence relative to a baseline, not causal effects.",
         "warnings": [],
-        "disclaimer": "Research estimate, not a medical diagnosis."
+        "disclaimer": "Research estimate, not a medical diagnosis.",
+        "prediction_id": "00000000-0000-0000-0000-000000000004",
+        "created_at": "2026-09-03T10:15:00Z"
       },
       "model_features": [
         "heart_disease",
@@ -1124,7 +1133,9 @@
       "explanation_units",
       "explanation_note",
       "warnings",
-      "disclaimer"
+      "disclaimer",
+      "prediction_id",
+      "created_at"
     ],
     "properties": {
       "contract_version": {
@@ -1133,8 +1144,11 @@
       },
       "prediction_id": {
         "type": "string",
-        "format": "uuid",
-        "required_after_persistence_is_implemented": true
+        "format": "uuid"
+      },
+      "created_at": {
+        "type": "string",
+        "format": "date-time"
       },
       "disease": {
         "type": "string",
