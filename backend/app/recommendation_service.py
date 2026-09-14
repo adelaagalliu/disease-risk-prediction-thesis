@@ -148,7 +148,9 @@ def _candidate_interventions(disease: str, request: Any) -> list[Candidate]:
                 "improved_general_health", "contextual",
                 {"general_health", "age_genhealth", "general_health_diffwalk"},
                 {"general_health": improved_health},
-                (f"Nëse shëndeti i përgjithshëm i raportuar do të ""përmirësohej nga {current_label} në {improved_label}"),
+                (f"Nëse shëndeti i përgjithshëm i raportuar do të përmirësohej nga "
+                 f"{GENERAL_HEALTH_LABELS[request.general_health]} në "
+                 f"{GENERAL_HEALTH_LABELS[improved_health]}"),
             )
 
         for field, feature, label in (
