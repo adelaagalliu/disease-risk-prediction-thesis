@@ -1,5 +1,8 @@
+import uuid
+from datetime import datetime
 from typing import Any, Literal
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 Sex = Literal["female", "male"]
 Education = Literal[
@@ -23,6 +26,67 @@ Income = Literal[
 IncomeDisplayCurrency = Literal["ALL", "EUR"]
 GeneralHealth = Literal["excellent", "very_good", "good", "fair", "poor"]
 SmokingStatus = Literal["never", "former", "current", "unknown"]
+Disease = Literal["diabetes", "heart_disease", "hypertension", "stroke"]
+TrendMetric = Literal[
+    "bmi",
+    "systolic_bp",
+    "diastolic_bp",
+    "heart_rate",
+    "glucose",
+    "cholesterol",
+]
+
+class RegisterRequest(BaseModel):
+    email: str = Field(min_length=3, max_length=320)
+    password: str = Field(min_length=8, max_length=120)
+
+    @field_validator("email")
+    @classmethod
+    def normalize_email(cls, value: str) -> str:
+        normalized = value.strip().lower()
+        if (normalized.count("@") != 1 or normalized.startswith("@") or normalized.endswith("@")):
+            raise ValueError("Vendosni një adresë email valide.")
+        return normalized
+    
+    @field_validator("password")
+    @classmethod
+    def validate_password(cls, value: str) -> str:
+        if not any(character.isdigit() for character in value):
+            raise ValueError(
+                "Fjalëkalimi duhet të përmbajë të paktën një numër."
+            )
+        if not any(
+            not character.isalnum() and not character.isspace()
+            for character in value
+        ):
+            raise ValueError(
+                "Fjalëkalimi duhet të përmbajë të paktën një simbol special."
+            )
+        if any(character.isspace() for character in value):
+            raise ValueError(
+                "Fjalëkalimi nuk duhet të përmbajë hapësira."
+            )
+        return value
+    
+class LoginRequest(BaseModel):
+    email: str
+    password: str
+    @field_validator("email")
+    @classmethod
+    def normalize_email(cls, value: str) -> str:
+        return value.strip().lower()
+
+class UserResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: uuid.UUID
+    email: str
+    is_active: bool
+    created_at: datetime
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: Literal["bearer"] = "bearer"
+    expires_in: int
 
 class StrictRequest(BaseModel):
     model_config = ConfigDict(
@@ -74,7 +138,7 @@ class HypertensionRequest(PatientProfileRequest):
     cholesterol: float = Field(ge=80, le=700)
     glucose: float = Field(ge=30, le=700)
 
-    # Kontrollon lidhjet ndermjet vlerave mjekesore
+    # kontrollon lidhjet ndermjet vlerave mjekesore
     @model_validator(mode="after")
     def validate_relationships(self) -> "HypertensionRequest":
         if self.diastolic_bp >= self.systolic_bp:
@@ -145,3 +209,22 @@ class PredictionResponse(BaseModel):
     explanation_note: str
     warnings: list[str]
     disclaimer: str
+    prediction_id: uuid.UUID
+    created_at: datetime
+
+class PredictionHistoryItem(BaseModel):
+    id: uuid.UUID
+    disease: Disease
+    probability: float = Field(ge=0, le=1)
+    classification: Literal["elevated", "not_elevated"]
+    threshold: float = Field(ge=0, le=1)
+    model: str
+    model_version: str
+    created_at: datetime
+    inputs: dict[str, Any]
+
+class TrendPoint(BaseModel):
+    health_record_id: uuid.UUID
+    disease: Disease
+    recorded_at: datetime
+    value: float
