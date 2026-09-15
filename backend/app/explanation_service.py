@@ -81,7 +81,13 @@ INCOME_LABELS = {
         "75000_or_more": "64 700 euro ose me shume",
     },
 }
-
+GENERAL_HEALTH_LABELS = {
+    "excellent": "E shkëlqyer",
+    "very_good": "Shumë e mirë",
+    "good": "E mirë",
+    "fair": "Mesatare",
+    "poor": "E dobët",
+}
 LIFESTYLE_MODIFIABLE_FEATURES = {
     "bmi",
     "bmi_obese",
@@ -129,6 +135,10 @@ MODIFIABLE_FEATURES = (
     | CARE_MODIFIABLE_FEATURES
     | DERIVED_MODIFIABLE_FEATURES
 )
+HIDDEN_EXPLANATION_FEATURES = {
+    "metabolic_risk_score",
+    "lifestyle_score",
+}
 
 # kthen vlerat NumPy ne vlera te perdorshme nga API
 def convert_numpy_value(value: Any) -> Any:
@@ -166,7 +176,7 @@ def display_feature_value(feature: str, request: Any, value: Any) -> Any:
         return direct_values[feature]
 
     if hasattr(request, "general_health"):
-        general_health = request.general_health.replace("_", " ")
+        general_health = GENERAL_HEALTH_LABELS[request.general_health]
         general_health_values = {
             "general_health": general_health,
             "age_genhealth": (
@@ -258,11 +268,9 @@ class ExplanationService:
         )
         factors = []
 
-        for feature, value, shap_value in zip(
-            feature_names,
-            transformed_row,
-            row_values,
-        ):
+        for feature, value, shap_value in zip(feature_names, transformed_row, row_values,):
+            if feature in HIDDEN_EXPLANATION_FEATURES:
+                continue
             factors.append(
                 {
                     "feature": feature,

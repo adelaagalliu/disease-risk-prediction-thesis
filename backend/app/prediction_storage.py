@@ -6,7 +6,6 @@ from sqlalchemy.orm import Session
 from .feature_builder import calculate_bmi
 from .models import HealthRecord, Prediction, User
 
-
 def save_prediction(
     db: Session,
     user: User,
@@ -43,7 +42,6 @@ def save_prediction(
     db.commit()
     db.refresh(prediction)
     return prediction
-
 
 def utc_iso(value: datetime) -> str:
     return value.isoformat()
