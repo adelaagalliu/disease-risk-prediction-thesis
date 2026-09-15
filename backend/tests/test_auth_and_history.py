@@ -45,7 +45,6 @@ def register_and_login(client: TestClient, email: str = "person@example.com") ->
     assert login.status_code == 200
     return login.json()["access_token"]
 
-
 def test_registration_hashes_password_and_rejects_duplicate(client):
     test_client, testing_session = client
     register_and_login(test_client, "  Person@Example.com ")
@@ -61,7 +60,6 @@ def test_registration_hashes_password_and_rejects_duplicate(client):
         json={"email": "PERSON@example.com", "password": "anotherlongpassword1?"},
     )
     assert duplicate.status_code == 409
-
 
 def test_login_and_me_require_valid_credentials(client):
     test_client, _ = client
@@ -145,7 +143,6 @@ def test_prediction_and_metric_history_are_scoped_to_current_user(client):
     assert first_bmi.status_code == 200
     assert first_bmi.json()[0]["value"] == pytest.approx(24.98)
     assert second_history.json() == []
-
 
 def test_saved_result_detail_is_owned_and_complete(client):
     import uuid

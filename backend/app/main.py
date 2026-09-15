@@ -14,7 +14,7 @@ from .explanation_service import explanation_service
 from .feature_builder import build_features
 from .model_registry import registry
 from .models import HealthRecord, Prediction, User
-from .prediciton_storage import save_prediction
+from .prediction_storage import save_prediction
 from .recommendation_service import create_recommendations
 from .schemas import (
     DiabetesRequest,
