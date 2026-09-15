@@ -9,7 +9,7 @@ from sqlalchemy.pool import StaticPool
 from app import main
 from app.database import Base, get_db
 from app.models import User
-from app.persistence_service import save_prediction
+from app.prediction_storage import save_prediction
 from app.schemas import HypertensionRequest
 
 @pytest.fixture
