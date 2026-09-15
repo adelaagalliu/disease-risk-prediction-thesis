@@ -110,6 +110,12 @@ function RecommendationList({ predictions }) {
               <span>{item.scenario_type.replaceAll("_", " ")}</span>
             </div>
             <h3>{item.message}</h3>
+            {item.ai_explanation && (
+              <p className="ai-explanation">
+                {item.ai_generated && <span className="ai-badge">AI</span>}
+                {item.ai_explanation}
+              </p>
+            )}
             <p>
               Ndryshimi i parashikuar nga modeli: <strong>−{item.reduction_percentage_points.toFixed(1)} pikë përqindjeje</strong>
               {" "}({item.relative_reduction_percent.toFixed(1)}% relative)
@@ -121,7 +127,7 @@ function RecommendationList({ predictions }) {
           </div>
         </article>
       ))}
-      <p className="causal-note">Këta skenarë tregojnë si ndryshon vlerësimi kur ndryshohen të dhënat e modelit. Ata nuk provojnë se një veprim do të shkaktojë uljen e shfaqur.</p>
+      <p className="causal-note">Shifrat llogariten nga modeli logjistik. AI përdoret vetëm për formulimin e shpjegimit dhe nuk ndryshon rezultatet. Skenarët nuk provojnë shkakësi.</p>
     </div>
   );
 }

@@ -8,6 +8,8 @@ class Settings:
     database_url: str
     jwt_secret_key: str
     access_token_minutes: int
+    openai_api_key: str | None
+    openai_model: str
 
 
 @lru_cache
@@ -21,4 +23,6 @@ def get_settings() -> Settings:
             "JWT_SECRET_KEY", "change-this-development-secret-with-32-plus-bytes"
         ),
         access_token_minutes=int(os.getenv("ACCESS_TOKEN_MINUTES", "60")),
+        openai_api_key=os.getenv("OPENAI_API_KEY") or None,
+        openai_model=os.getenv("OPENAI_MODEL", "gpt-4.1-mini"),
     )

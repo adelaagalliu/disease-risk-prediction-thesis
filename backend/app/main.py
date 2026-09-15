@@ -9,6 +9,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from .auth import create_access_token, get_current_user, hash_password, verify_password
+from .ai_explanation_service import add_ai_explanations
 from .database import get_db
 from .explanation_service import explanation_service
 from .feature_builder import build_features
@@ -120,6 +121,7 @@ def predict(
         probability,
         top_factors,
     )
+    recommendations = add_ai_explanations(disease, recommendations)
     response_payload = {
         "contract_version": "1.1.0",
         "disease": disease,

@@ -194,6 +194,8 @@ class Recommendation(BaseModel):
     reduction_percentage_points: float = Field(gt=0)
     relative_reduction_percent: float = Field(gt=0)
     causal: Literal[False] = False
+    ai_explanation: str | None = None
+    ai_generated: bool = False
 
 class PredictionResponse(BaseModel):
     contract_version: Literal["1.1.0"]
