@@ -9,10 +9,11 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from .auth import create_access_token, get_current_user, hash_password, verify_password
-from .ai_explanation_service import add_ai_explanations
+from .ai_explanation_service import add_ai_explanations, add_ai_guidance_summary
 from .database import get_db
 from .explanation_service import explanation_service
 from .feature_builder import build_features
+from .health_guidance import build_health_guidance
 from .model_registry import registry
 from .models import HealthRecord, Prediction, User
 from .prediction_storage import save_prediction
@@ -122,6 +123,8 @@ def predict(
         top_factors,
     )
     recommendations = add_ai_explanations(disease, recommendations)
+    general_guidance = build_health_guidance(disease, recommendations)
+    general_guidance = add_ai_guidance_summary(disease, general_guidance)
     response_payload = {
         "contract_version": "1.1.0",
         "disease": disease,
@@ -134,6 +137,7 @@ def predict(
         "threshold": threshold,
         "top_factors": top_factors,
         "recommendations": recommendations,
+        "general_guidance": general_guidance,
         "explanation_units": explanation_units,
         "explanation_note": (
             "Vlerat SHAP tregojnë se si veçoritë e rritën ose e ulën rezultatin "

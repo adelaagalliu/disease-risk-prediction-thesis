@@ -47,7 +47,7 @@ export default function HealthTrends({revision}) {
         </g>)}
         <text x="60" y="205" className="axis-label">{new Date(start).toLocaleDateString("sq-AL")}</text><text x="650" y="205" textAnchor="end" className="axis-label">{new Date(end).toLocaleDateString("sq-AL")}</text>
       </svg></div>
-      <details><summary>Shiko tabelën e matjeve ({tableRows.length})</summary><div className="table-scroll"><table><thead><tr><th>Data</th>{series.map(item=><th key={item.key}>{item.label} ({unit})</th>)}</tr></thead><tbody>{tableRows.map(row=><tr key={row.key}><td>{new Date(row.recorded_at).toLocaleString("sq-AL")}</td>{series.map(item=><td key={item.key}>{row.values[item.key]??"—"}</td>)}</tr>)}</tbody></table></div></details>
+      <details><summary>Shiko tabelën e matjeve</summary><div className="table-scroll"><table><thead><tr><th>Data</th>{series.map(item=><th key={item.key}>{item.label} ({unit})</th>)}</tr></thead><tbody>{tableRows.map(row=><tr key={row.key}><td>{new Date(row.recorded_at).toLocaleString("sq-AL")}</td>{series.map(item=><td key={item.key}>{row.values[item.key]??"—"}</td>)}</tr>)}</tbody></table></div></details>
     </>}
     <p className="causal-note">Shfaqen deri në 250 matje të fundit për secilin tregues. Çdo vlerësim shëndetësor ruan matjet e veta, ndaj një paraqitje mund të përmbajë matje të përsëritura.</p>
   </section>;

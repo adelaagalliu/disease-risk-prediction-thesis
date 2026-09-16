@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
@@ -197,6 +197,28 @@ class Recommendation(BaseModel):
     ai_explanation: str | None = None
     ai_generated: bool = False
 
+class HealthGuidanceItem(BaseModel):
+    id: str
+    title: str
+    text: str
+    source_organization: Literal["WHO"]
+    source_title: str
+    source_url: str
+    reviewed_at: date
+
+    @field_validator("source_url")
+    @classmethod
+    def validate_source_url(cls, value: str) -> str:
+        if not value.startswith("https://www.who.int/"):
+            raise ValueError("Burimi i udhëzimit duhet të jetë një faqe zyrtare e WHO.")
+        return value
+
+class GeneralHealthGuidance(BaseModel):
+    summary: str
+    ai_generated: bool = False
+    items: list[HealthGuidanceItem] = Field(min_length=1, max_length=4)
+    disclaimer: str
+
 class PredictionResponse(BaseModel):
     contract_version: Literal["1.1.0"]
     disease: Literal["diabetes", "heart_disease", "hypertension", "stroke"]
@@ -207,6 +229,7 @@ class PredictionResponse(BaseModel):
     threshold: float = Field(ge=0, le=1)
     top_factors: list[TopFactor]
     recommendations: list[Recommendation] = Field(max_length=5)
+    general_guidance: GeneralHealthGuidance | None = None
     explanation_units: Literal["probability", "raw_model_output", "log_odds"]
     explanation_note: str
     warnings: list[str]

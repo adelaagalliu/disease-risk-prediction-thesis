@@ -132,6 +132,76 @@ function RecommendationList({ predictions }) {
   );
 }
 
+function GuidancePanel({ predictions }) {
+  const availableDiseases = diseaseOrder.filter(
+    (disease) => predictions[disease]?.general_guidance?.items?.length,
+  );
+  const [selectedDisease, setSelectedDisease] = useState(availableDiseases[0] || "diabetes");
+  const availableKey = availableDiseases.join("|");
+
+  useEffect(() => {
+    if (availableDiseases.length && !availableDiseases.includes(selectedDisease)) {
+      setSelectedDisease(availableDiseases[0]);
+    }
+  }, [availableKey, selectedDisease]);
+
+  if (!availableDiseases.length) {
+    return (
+      <div className="empty-state compact">
+        Udhëzimet e përgjithshme do të shfaqen pas një vlerësimi të ri.
+      </div>
+    );
+  }
+
+  const guidance = predictions[selectedDisease].general_guidance;
+  return (
+    <div className="guidance-content">
+      <div className="disease-tabs guidance-tabs" role="tablist" aria-label="Zgjidh sëmundjen për udhëzimet">
+        {availableDiseases.map((disease) => (
+          <button
+            type="button"
+            role="tab"
+            aria-selected={selectedDisease === disease}
+            key={disease}
+            className={selectedDisease === disease ? "active" : ""}
+            onClick={() => setSelectedDisease(disease)}
+          >
+            {diseaseMeta[disease].label}
+          </button>
+        ))}
+      </div>
+
+      <div className="guidance-summary">
+        <div>
+          <span className={guidance.ai_generated ? "ai-badge" : "verified-badge"}>
+            {guidance.ai_generated ? "Formulim me AI" : "Tekst i verifikuar"}
+          </span>
+          <strong>Informacion i përgjithshëm</strong>
+        </div>
+        <p>{guidance.summary}</p>
+      </div>
+
+      <div className="guidance-grid">
+        {guidance.items.map((item) => (
+          <article className="guidance-card" key={item.id}>
+            <h3>{item.title}</h3>
+            <p>{item.text}</p>
+            <div className="guidance-source">
+              <span>Burim: {item.source_organization}</span>
+              <a href={item.source_url} target="_blank" rel="noreferrer noopener">
+                Shiko burimin
+              </a>
+            </div>
+            <small>Rishikuar më {new Intl.DateTimeFormat("sq-AL").format(new Date(item.reviewed_at + "T00:00:00"))}</small>
+          </article>
+        ))}
+      </div>
+
+      <p className="guidance-disclaimer">{guidance.disclaimer}</p>
+    </div>
+  );
+}
+
 function FactorList({ prediction }) {
   const factors = prediction?.top_factors?.slice(0, 5) || [];
   if (!factors.length) return <div className="empty-state compact">Nuk ka të dhëna shpjeguese të disponueshme.</div>;
@@ -286,6 +356,17 @@ export default function Dashboard({ user, onLogout, onUpdateProfile, onRefresh, 
             <span className="panel-caption">Ndryshimet me ndikim më të madh në të gjitha vlerësimet</span>
           </div>
           <RecommendationList predictions={predictions} />
+        </section>
+
+        <section className="panel guidance-panel" id="guidance">
+          <div className="panel-heading">
+            <div>
+              <span className="section-label">Informacion i mbështetur në burime</span>
+              <h2>Udhëzime të përgjithshme për faktorët e rrezikut</h2>
+            </div>
+            <span className="panel-caption">Burime zyrtare të Organizatës Botërore të Shëndetësisë</span>
+          </div>
+          <GuidancePanel predictions={predictions} />
         </section>
 
         <section className="panel factors-panel">

@@ -316,6 +316,29 @@ a { color: inherit; text-decoration: none; }
 .recommendation-result span { color: #82908b; font-size: 10px; }
 .recommendation-result strong { color: var(--green); font-family: Georgia, serif; font-size: 25px; font-weight: 500; }
 .causal-note { margin: 14px 0 0; color: #89958f; font-size: 10px; line-height: 1.5; }
+.guidance-panel { margin-top: 18px; }
+.guidance-content { margin-top: 24px; }
+.guidance-tabs { justify-content: flex-start; gap: 8px; border-bottom: 1px solid #e2e8e3; padding-bottom: 14px; }
+.guidance-tabs button { padding: 9px 13px; font-size: 12px; font-weight: 750; }
+.guidance-summary { margin-top: 20px; border: 1px solid #dbe7df; border-radius: 14px; padding: 20px; background: #f5f9f5; }
+.guidance-summary > div { display: flex; align-items: center; gap: 10px; }
+.guidance-summary strong { color: var(--green-dark); font-size: 16px; }
+.guidance-summary p { margin: 11px 0 0; color: #60716b; font-size: 14px; line-height: 1.7; }
+.ai-badge, .verified-badge { display: inline-flex; align-items: center; border-radius: 20px; padding: 5px 10px; font-size: 10px; font-weight: 850; letter-spacing: 0.04em; text-transform: uppercase; }
+.ai-badge { margin-right: 7px; background: #e4efe9; color: #246f5e; }
+.verified-badge { background: #edf0e9; color: #637269; }
+.guidance-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 16px; }
+.guidance-card { display: flex; min-height: 205px; flex-direction: column; border: 1px solid #dce6df; border-radius: 16px; padding: 20px; background: #fff; transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease; }
+.guidance-card:hover { border-color: #c8dbcf; box-shadow: 0 8px 22px rgba(30, 91, 73, 0.08); transform: translateY(-2px); }
+.guidance-card h3 { margin: 0; color: var(--green-dark); font-size: 16px; line-height: 1.4; }
+.guidance-card > p { margin: 11px 0 18px; color: #66766f; font-size: 13px; line-height: 1.7; }
+.guidance-source { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: auto; border-top: 1px solid #e8ede9; padding-top: 14px; }
+.guidance-source span { color: #71817b; font-size: 12px; font-weight: 800; }
+.guidance-source a { color: var(--green); font-size: 12px; font-weight: 800; text-decoration: underline; text-underline-offset: 3px; }
+.guidance-source a:hover { color: var(--green-dark); }
+.guidance-card small { margin-top: 9px; color: #87958f; font-size: 11px; line-height: 1.5; }
+.guidance-disclaimer { margin: 18px 0 0; border-left: 3px solid #d3b16e; padding: 7px 0 7px 14px; color: #75664b; font-size: 12px; line-height: 1.65; }
+@media (max-width: 760px) { .guidance-grid { grid-template-columns: 1fr; } .guidance-card { min-height: auto; } .guidance-tabs { overflow-x: auto; flex-wrap: nowrap; } .guidance-tabs button { flex-shrink: 0; } .guidance-source { align-items: flex-start; flex-direction: column; gap: 7px; } }
 .factors-panel select { height: 36px; border: 1px solid #d7e0da; border-radius: 9px; outline: none; background: #fff; color: var(--ink); padding: 0 10px; font-size: 11px; font-weight: 700; }
 .factor-list { display: grid; gap: 16px; margin-top: 24px; }
 .factor { display: grid; align-items: center; grid-template-columns: minmax(160px, 0.7fr) minmax(180px, 1.3fr) 60px; gap: 18px; }
@@ -364,6 +387,7 @@ a { color: inherit; text-decoration: none; }
   .dashboard-intro { align-items: start; flex-direction: column; }
   .intro-actions { width: 100%; justify-content: space-between; }
   .user-menu div { display: none; }
+  .guidance-grid { grid-template-columns: 1fr; }
   .dashboard { width: min(100% - 30px, 720px); padding-top: 32px; }
 }
 
@@ -384,6 +408,7 @@ a { color: inherit; text-decoration: none; }
   .disease-tabs { justify-content: start; }
   .recommendation { align-items: start; grid-template-columns: 28px minmax(0, 1fr); }
   .recommendation-result { grid-column: 2; text-align: left; }
+  .guidance-summary > div, .guidance-source { align-items: flex-start; flex-direction: column; }
   .factor { grid-template-columns: minmax(120px, 1fr) 1fr; gap: 10px; }
   .factor .direction { grid-column: 2; }
   .dashboard-footer { flex-direction: column; }
