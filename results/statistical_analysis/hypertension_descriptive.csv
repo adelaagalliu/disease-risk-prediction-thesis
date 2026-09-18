@@ -1,34 +1,34 @@
-variabla,niveli,grupi_0_n_perqindje,grupi_1_n_perqindje,testi_statistikor,vlera_p,vlera_p_Mann_Whitney,grupi_0_mesatarja_DS,grupi_1_mesatarja_DS,grupi_0_mediana_IQR,grupi_1_mediana_IQR
-diabetes,0,2010 (98.2%),876 (95.1%),Testi khi-katror (χ²),3.975481867004014e-06,,,,,
-diabetes,1,37 (1.8%),45 (4.9%),Testi khi-katror (χ²),3.975481867004014e-06,,,,,
-sex_binary,0,1170 (57.2%),528 (57.3%),Testi khi-katror (χ²),0.9620287893934725,,,,,
-sex_binary,1,877 (42.8%),393 (42.7%),Testi khi-katror (χ²),0.9620287893934725,,,,,
-age_range,3,17 (0.8%),1 (0.1%),Testi khi-katror (χ²),7.345011580356484e-52,,,,,
-age_range,4,325 (15.9%),41 (4.5%),Testi khi-katror (χ²),7.345011580356484e-52,,,,,
-age_range,5,506 (24.7%),116 (12.6%),Testi khi-katror (χ²),7.345011580356484e-52,,,,,
-age_range,6,404 (19.7%),140 (15.2%),Testi khi-katror (χ²),7.345011580356484e-52,,,,,
-age_range,7,310 (15.1%),192 (20.8%),Testi khi-katror (χ²),7.345011580356484e-52,,,,,
-age_range,8,256 (12.5%),184 (20.0%),Testi khi-katror (χ²),7.345011580356484e-52,,,,,
-age_range,9,184 (9.0%),183 (19.9%),Testi khi-katror (χ²),7.345011580356484e-52,,,,,
-age_range,10,45 (2.2%),63 (6.8%),Testi khi-katror (χ²),7.345011580356484e-52,,,,,
-age_range,11,0 (0.0%),1 (0.1%),Testi khi-katror (χ²),7.345011580356484e-52,,,,,
-bmi,e vazhdueshme,,,Testi t i Welch-it; testi U i Mann–Whitney-t,1.3370287931237187e-46,4.231792830509835e-49,24.99 (3.52),27.55 (4.65),"24.69 [22.54, 27.14]","26.80 [24.53, 29.76]"
-smoker,0.0,918 (44.8%),507 (55.0%),Testi khi-katror (χ²),2.9837661451065565e-08,,,,,
-smoker,0.4946808510638298,93 (4.5%),55 (6.0%),Testi khi-katror (χ²),2.9837661451065565e-08,,,,,
-smoker,1.0,1036 (50.6%),359 (39.0%),Testi khi-katror (χ²),2.9837661451065565e-08,,,,,
-cigs_per_day,e vazhdueshme,,,Testi t i Welch-it; testi U i Mann–Whitney-t,1.866524788433004e-05,2.3476395355299257e-08,9.31 (11.82),7.30 (11.83),"1.00 [0.00, 20.00]","0.00 [0.00, 15.00]"
-systolic_bp,e vazhdueshme,,,Testi t i Welch-it; testi U i Mann–Whitney-t,1.9565169223551216e-268,0.0,122.19 (12.85),155.43 (20.41),"122.00 [113.00, 130.00]","152.00 [141.50, 166.00]"
-diastolic_bp,e vazhdueshme,,,Testi t i Welch-it; testi U i Mann–Whitney-t,9.336820079856543e-226,6.85622185246273e-254,77.95 (8.27),93.88 (11.08),"79.00 [72.50, 84.00]","93.00 [87.00, 100.00]"
-high_bp,0,992 (48.5%),10 (1.1%),Testi khi-katror (χ²),3.3348784657619155e-140,,,,,
-high_bp,1,1055 (51.5%),911 (98.9%),Testi khi-katror (χ²),3.3348784657619155e-140,,,,,
-heart_rate,e vazhdueshme,,,Testi t i Welch-it; testi U i Mann–Whitney-t,1.7081930330159116e-14,9.774075934967856e-13,74.72 (11.33),78.47 (12.55),"75.00 [67.00, 80.00]","75.00 [70.00, 85.00]"
-bp_meds,0,2047 (100.0%),835 (90.7%),Testi khi-katror (χ²),5.362807241918858e-44,,,,,
-bp_meds,1,0 (0.0%),86 (9.3%),Testi khi-katror (χ²),5.362807241918858e-44,,,,,
-cholesterol,e vazhdueshme,,,Testi t i Welch-it; testi U i Mann–Whitney-t,1.0113495628629249e-18,1.0114283944089082e-19,231.74 (41.89),248.26 (48.51),"229.00 [202.00, 257.00]","244.00 [218.00, 273.00]"
-high_chol,0,493 (24.1%),133 (14.4%),Testi khi-katror (χ²),3.4454073176113535e-09,,,,,
-high_chol,1,1554 (75.9%),788 (85.6%),Testi khi-katror (χ²),3.4454073176113535e-09,,,,,
-glucose,e vazhdueshme,,,Testi t i Welch-it; testi U i Mann–Whitney-t,1.2675121797182329e-06,1.9637132288300568e-07,79.97 (19.41),85.33 (30.80),"77.00 [71.00, 84.00]","78.00 [73.00, 88.00]"
-smoker_was_missing,0,1954 (95.5%),866 (94.0%),Testi khi-katror (χ²),0.11806742767461535,,,,,
-smoker_was_missing,1,93 (4.5%),55 (6.0%),Testi khi-katror (χ²),0.11806742767461535,,,,,
-bp_meds_was_missing,0,2024 (98.9%),905 (98.3%),Testi khi-katror (χ²),0.23643958673903753,,,,,
-bp_meds_was_missing,1,23 (1.1%),16 (1.7%),Testi khi-katror (χ²),0.23643958673903753,,,,,
+feature,level,target_0_n_percent,target_1_n_percent,test,p_value,target_0_mean_sd,target_1_mean_sd
+diabetes,0,2010 (98.2%),876 (95.1%),chi-square,3.975481867004014e-06,,
+diabetes,1,37 (1.8%),45 (4.9%),chi-square,3.975481867004014e-06,,
+sex_binary,0,1170 (57.2%),528 (57.3%),chi-square,0.9620287893934725,,
+sex_binary,1,877 (42.8%),393 (42.7%),chi-square,0.9620287893934725,,
+age_range,3,17 (0.8%),1 (0.1%),chi-square,7.345011580356482e-52,,
+age_range,4,325 (15.9%),41 (4.5%),chi-square,7.345011580356482e-52,,
+age_range,5,506 (24.7%),116 (12.6%),chi-square,7.345011580356482e-52,,
+age_range,6,404 (19.7%),140 (15.2%),chi-square,7.345011580356482e-52,,
+age_range,7,310 (15.1%),192 (20.8%),chi-square,7.345011580356482e-52,,
+age_range,8,256 (12.5%),184 (20.0%),chi-square,7.345011580356482e-52,,
+age_range,9,184 (9.0%),183 (19.9%),chi-square,7.345011580356482e-52,,
+age_range,10,45 (2.2%),63 (6.8%),chi-square,7.345011580356482e-52,,
+age_range,11,0 (0.0%),1 (0.1%),chi-square,7.345011580356482e-52,,
+bmi,continuous,,,Welch t-test,1.3370287931237189e-46,24.99 (3.52),27.55 (4.65)
+smoker,0.0,918 (44.8%),507 (55.0%),chi-square,2.9837661451065565e-08,,
+smoker,0.4946808510638298,93 (4.5%),55 (6.0%),chi-square,2.9837661451065565e-08,,
+smoker,1.0,1036 (50.6%),359 (39.0%),chi-square,2.9837661451065565e-08,,
+cigs_per_day,continuous,,,Welch t-test,1.866524788433004e-05,9.31 (11.82),7.30 (11.83)
+systolic_bp,continuous,,,Welch t-test,1.9565169223551563e-268,122.19 (12.85),155.43 (20.41)
+diastolic_bp,continuous,,,Welch t-test,9.336820079856417e-226,77.95 (8.27),93.88 (11.08)
+high_bp,0,992 (48.5%),10 (1.1%),chi-square,3.3348784657619155e-140,,
+high_bp,1,1055 (51.5%),911 (98.9%),chi-square,3.3348784657619155e-140,,
+heart_rate,continuous,,,Welch t-test,1.7081930330159116e-14,74.72 (11.33),78.47 (12.55)
+bp_meds,0,2047 (100.0%),835 (90.7%),chi-square,5.362807241918858e-44,,
+bp_meds,1,0 (0.0%),86 (9.3%),chi-square,5.362807241918858e-44,,
+cholesterol,continuous,,,Welch t-test,1.0113495628629249e-18,231.74 (41.89),248.26 (48.51)
+high_chol,0,493 (24.1%),133 (14.4%),chi-square,3.4454073176113535e-09,,
+high_chol,1,1554 (75.9%),788 (85.6%),chi-square,3.4454073176113535e-09,,
+glucose,continuous,,,Welch t-test,1.2675121797182329e-06,79.97 (19.41),85.33 (30.80)
+smoker_was_missing,0,1954 (95.5%),866 (94.0%),chi-square,0.11806742767461535,,
+smoker_was_missing,1,93 (4.5%),55 (6.0%),chi-square,0.11806742767461535,,
+bp_meds_was_missing,0,2024 (98.9%),905 (98.3%),chi-square,0.23643958673903753,,
+bp_meds_was_missing,1,23 (1.1%),16 (1.7%),chi-square,0.23643958673903753,,
