@@ -11,7 +11,9 @@ The project combines logistic regression models, an authenticated API, PostgreSQ
 
 > [!IMPORTANT]
 > This project was developed for academic and demonstration purposes. Its outputs are statistical estimates, not diagnoses or medical advice, and must not replace an assessment by a qualified healthcare professional.
-
+![Health risk assessment dashboard](docs/images/health_dashboard.png)
+![Health risk assessment dashboard](docs/images/health_data.png)
+![Health risk assessment dashboard](docs/images/health_shap_scenarios.png)
 ## Table of Contents
 
 - [Key Features](#key-features)
